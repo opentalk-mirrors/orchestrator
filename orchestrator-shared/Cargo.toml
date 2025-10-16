@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+name = "opentalk-orchestrator-shared"
+description = "Shared types for orchestrated services"
+version = "0.1.0"
+publish = false
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lib]
+
+[features]
+default = []
+recording-service = []
+roomserver-service = []
+transcription-service = []
+
+[dependencies]
+opentalk-types = { workspace = true, features = ["common", "serde"] }
+serde.workspace = true

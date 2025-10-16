@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+
+[package]
+name = "orchestrator"
+description = "OpenTalk Orchestrator Service"
+version = "0.1.0"
+publish = false
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+bytes.workspace = true
+log.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-web-api.workspace = true
+opentalk-types-api-v1 = { workspace = true, features = ["axum", "http"] }
+opentalk-types-common.workspace = true
+rand.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+opentalk-orchestrator-shared = { workspace = true, features = [
+    "recording-service",
+    "roomserver-service",
+    "transcription-service",
+] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tracing-subscriber.workspace = true

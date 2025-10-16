@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[workspace]
+members = ["orchestrator", "orchestrator-shared", "orchestrator-client"]
+resolver = "2"
+
+[workspace.package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+edition = "2024"
+homepage = "https://opentalk.eu/"
+repository = "https://gitlab.opencode.de/opentalk/orchestrator"
+license = "EUPL-1.2"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+axum = { version = "0.8", features = ["http2", "ws"] }
+bytes = "1.10"
+env = "1.0"
+futures-util = "0.3"
+http = "1.0"
+log = "0.4"
+opentalk-roomserver-types.path = "../roomserver/opentalk-roomserver-types"
+opentalk-roomserver-web-api.path = "../roomserver/opentalk-roomserver-web-api"
+opentalk-types = { version = "0.50", default-features = false }
+opentalk-types-api-v1 = { version = "0.42", default-features = false }
+opentalk-types-common = { version = "0.37", default-features = false, features = [
+    "serde",
+] }
+rand = "0.9"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+opentalk-orchestrator-shared.path = "./orchestrator-shared"
+thiserror = "2.0"
+tokio = { version = "1.47", default-features = false }
+tokio-tungstenite = { version = "0.27", default-features = false, features = [
+    "rustls",
+] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tungstenite = { version = "0.27", default-features = false, features = [
+    "rustls",
+] }
