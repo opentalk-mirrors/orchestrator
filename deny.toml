@@ -74,6 +74,9 @@ exceptions = [
   ], name = "opentalk-types-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-types-api-common" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-types-common-macros" },
   { allow = [
     "EUPL-1.2",

@@ -177,7 +177,7 @@ test:cargo_test:
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   script:
-    - cargo llvm-cov nextest --profile ci
+    - cargo llvm-cov nextest --all-features --profile ci
     - cargo llvm-cov report --cobertura --output-path target/llvm-cov-target/cobertura.xml
 
 build:
@@ -197,7 +197,7 @@ build:
       - target/release/orchestrator
     expire_in: 1 week
   script:
-    - cargo auditable build --release --locked --workspace
+    - cargo auditable build --all-features --release --locked --workspace
 
 package:read-tags:
   stage: package
