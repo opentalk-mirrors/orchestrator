@@ -9,12 +9,13 @@ use async_trait::async_trait;
 use axum::http::StatusCode;
 use bytes::Bytes;
 use opentalk_orchestrator_shared::{Metrics, RoomServerEvent};
-use opentalk_roomserver_types::api::{RoomServerAccess, TokenRequestBody, TokenResponse};
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
+    api::{RoomServerAccess, TokenRequestBody},
+    client_parameters::ClientParameters,
+    room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend};
-use opentalk_types_api_v1::error::{ApiError, ErrorBody};
+use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_common::rooms::RoomId;
 use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
@@ -90,7 +91,7 @@ impl RoomBackend for AppState {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<RoomServerAccess>, ApiError> {
+    ) -> Result<RoomServerAccess, ApiError> {
         let Some(address) = self.select_roomserver(room_id).await else {
             return Err(ApiError {
                 status: StatusCode::SERVICE_UNAVAILABLE,
@@ -124,10 +125,7 @@ impl RoomBackend for AppState {
         })?;
 
         match status {
-            StatusCode::OK => match deserialize_token_response(status, &body)? {
-                TokenResponse::Token(roomserver_access) => Ok(Some(roomserver_access)),
-                TokenResponse::UnknownRoom => Ok(None),
-            },
+            StatusCode::OK => Ok(deserialize_token_response(status, &body)?),
             error_code => Err(ApiError {
                 status: error_code,
                 www_authenticate: None,
@@ -139,8 +137,6 @@ impl RoomBackend for AppState {
 
 impl AppState {
     /// Select a roomserver instance for the given room id
-    /// 
-    /// 
     async fn select_roomserver(&self, room_id: RoomId) -> Option<Address> {
         let mut roomservers = self.roomserver_services.lock().await;
 
@@ -181,5 +177,68 @@ fn deserialize_token_response<T: for<'a> Deserialize<'a>>(
             );
             Err(ApiError::internal().with_message("Unexpected roomserver response body"))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use opentalk_orchestrator_shared::Metrics;
+    use opentalk_types_common::rooms::RoomId;
+
+    use crate::AppState;
+
+    #[test_log::test(tokio::test)]
+    async fn select_existing_room() {
+        let server_1 = "0.0.0.1".to_string();
+        let server_2 = "0.0.0.2".to_string();
+
+        const ROOM_1: RoomId = RoomId::from_u128(1);
+        const ROOM_2: RoomId = RoomId::from_u128(2);
+        const ROOM_3: RoomId = RoomId::from_u128(3);
+
+        let app_state = AppState::default();
+        let mut roomservers = app_state.roomserver_services.lock().await;
+
+        let mut rooms = HashSet::default();
+        rooms.insert(ROOM_1);
+
+        roomservers.insert(
+            server_1.clone(),
+            super::RoomServerInstance {
+                metrics: Metrics {
+                    load: 80,
+                    accepting_jobs: true,
+                },
+                rooms,
+            },
+        );
+
+        let mut rooms = HashSet::default();
+        rooms.insert(ROOM_2);
+        rooms.insert(ROOM_3);
+
+        roomservers.insert(
+            server_2.clone(),
+            super::RoomServerInstance {
+                metrics: Metrics {
+                    load: 20,
+                    accepting_jobs: true,
+                },
+                rooms,
+            },
+        );
+
+        drop(roomservers);
+
+        let server = app_state.select_roomserver(ROOM_1).await;
+        assert_eq!(server, Some(server_1));
+
+        let server = app_state.select_roomserver(ROOM_2).await;
+        assert_eq!(server, Some(server_2.clone()));
+
+        let server = app_state.select_roomserver(ROOM_3).await;
+        assert_eq!(server, Some(server_2));
     }
 }

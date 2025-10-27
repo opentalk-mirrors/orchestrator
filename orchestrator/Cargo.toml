@@ -22,16 +22,19 @@ bytes.workspace = true
 log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-types-api-v1 = { workspace = true, features = ["axum", "http"] }
 opentalk-types-common.workspace = true
+opentalk-types-api-common.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 opentalk-orchestrator-shared = { workspace = true, features = [
-    "recording-service",
-    "roomserver-service",
-    "transcription-service",
+  "recording-service",
+  "roomserver-service",
+  "transcription-service",
 ] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+test-log.workspace = true
