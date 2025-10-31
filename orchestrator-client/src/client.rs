@@ -91,7 +91,7 @@ impl OrchestratorClient {
 
             log::info!(
                 "trying to connect to orchestrator at {}...",
-                self.config.endpoint.0
+                self.config.url
             );
 
             let signaling = match Signaling::connect(

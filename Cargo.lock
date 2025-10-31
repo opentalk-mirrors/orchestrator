@@ -1054,7 +1054,6 @@ dependencies = [
  "async-trait",
  "bytes",
  "futures-util",
- "http",
  "log",
  "opentalk-orchestrator-shared",
  "serde",
@@ -1062,6 +1061,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-tungstenite",
+ "url",
 ]
 
 [[package]]

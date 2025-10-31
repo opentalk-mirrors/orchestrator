@@ -7,7 +7,7 @@ pub mod config;
 pub mod signaling;
 
 pub use client::OrchestratorClient;
-pub use config::{Endpoint, OrchestratorConfig};
+pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
 pub use opentalk_orchestrator_shared::{Metrics, RegisterType};
 #[cfg(feature = "recording-service")]
 pub use opentalk_orchestrator_shared::{RecorderEvent, RegisterRecorder};
