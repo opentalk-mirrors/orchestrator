@@ -8,7 +8,6 @@ use std::collections::VecDeque;
 use anyhow::{Context, Result, bail};
 use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
-use http::header::SEC_WEBSOCKET_PROTOCOL;
 use opentalk_orchestrator_shared::Register;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
@@ -16,6 +15,7 @@ use tokio_tungstenite::{
     tungstenite::{
         Message as TtMessage, Utf8Bytes,
         client::IntoClientRequest,
+        http::header::SEC_WEBSOCKET_PROTOCOL,
         protocol::{CloseFrame, frame::coding::CloseCode},
     },
 };
@@ -30,7 +30,11 @@ pub(crate) struct Signaling {
 
 impl Signaling {
     pub(crate) async fn connect(config: &OrchestratorConfig, register: Register) -> Result<Self> {
-        let mut websocket_request = config.websocket_url().into_client_request()?;
+        let mut websocket_request = config
+            .url
+            .register_endpoint()?
+            .to_string()
+            .into_client_request()?;
         websocket_request.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
             // TODO: Add bearer token here

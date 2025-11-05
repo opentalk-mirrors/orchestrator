@@ -60,7 +60,7 @@ impl RoomBackend for AppState {
 
         let response = self
             .client
-            .put(format!("http://{address}/rooms/{room_id}"))
+            .put(format!("{address}v1/rooms/{room_id}"))
             .json(&room_parameters)
             .send()
             .await
@@ -112,7 +112,7 @@ impl RoomBackend for AppState {
 
         let response = self
             .client
-            .post(format!("http://{address}/rooms/{room_id}/token"))
+            .post(format!("{address}v1/rooms/{room_id}/token"))
             .json(&token_request)
             .send()
             .await
