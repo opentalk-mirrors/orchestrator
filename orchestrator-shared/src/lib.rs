@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_service_auth::ApiKeyId;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "recording-service")]
@@ -18,10 +19,16 @@ mod roomserver;
 #[cfg(feature = "transcription-service")]
 mod transcription;
 
+/// Request to register at the orchestrator
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
+    /// The address of the service
     pub address: String,
+    /// A list of api key ids to that authorize requests to the service
+    pub api_key_ids: Vec<ApiKeyId>,
+    /// The initial metrics
     pub metrics: Metrics,
+    /// The type of service
     pub register_type: RegisterType,
 }
 

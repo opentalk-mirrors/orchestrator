@@ -15,7 +15,7 @@ use tokio_tungstenite::{
     tungstenite::{
         Message as TtMessage, Utf8Bytes,
         client::IntoClientRequest,
-        http::header::SEC_WEBSOCKET_PROTOCOL,
+        http::header::{AUTHORIZATION, SEC_WEBSOCKET_PROTOCOL},
         protocol::{CloseFrame, frame::coding::CloseCode},
     },
 };
@@ -35,9 +35,13 @@ impl Signaling {
             .register_endpoint()?
             .to_string()
             .into_client_request()?;
+
+        websocket_request
+            .headers_mut()
+            .insert(AUTHORIZATION, config.api_key.generate_jwt()?.try_into()?);
+
         websocket_request.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
-            // TODO: Add bearer token here
             "opentalk-orchestrator-json-v1.0".to_string().try_into()?,
         );
 
