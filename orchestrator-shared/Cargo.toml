@@ -24,3 +24,6 @@ transcription-service = []
 [dependencies]
 opentalk-types = { workspace = true, features = ["common", "serde"] }
 serde.workspace = true
+
+[lints]
+workspace = true

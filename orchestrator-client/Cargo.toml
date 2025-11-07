@@ -42,3 +42,6 @@ url.workspace = true
 
 [build-dependencies]
 anyhow = "1"
+
+[lints]
+workspace = true
