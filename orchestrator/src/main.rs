@@ -14,6 +14,7 @@ use axum::{
 };
 use instance::Instance;
 use opentalk_roomserver_web_api::v1::rooms;
+use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
 use roomserver::RoomServerInstance;
 use tokio::sync::Mutex;
@@ -31,25 +32,76 @@ pub type Address = String;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct AppState {
     client: Client,
+    service_keys: ApiKeys,
     recorder_services: Arc<Mutex<HashMap<Address, RecorderInstance>>>,
     roomserver_services: Arc<Mutex<HashMap<Address, RoomServerInstance>>>,
     transcription_services: Arc<Mutex<HashMap<Address, TranscriptionInstance>>>,
+}
+
+impl AppState {
+    fn new(service_keys: ApiKeys) -> Self {
+        Self {
+            client: Default::default(),
+            service_keys,
+            recorder_services: Default::default(),
+            roomserver_services: Default::default(),
+            transcription_services: Default::default(),
+        }
+    }
+
+    /// Returns true if any of the provided service key ids is known to the orchestrator
+    fn knows_any_of(&self, service_key_ids: &[ApiKeyId]) -> bool {
+        for key_id in service_key_ids {
+            let is_known = self
+                .service_keys
+                .inner()
+                .iter()
+                .any(|cred| &cred.id == key_id);
+
+            if is_known {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns the first viable API key
+    fn get_api_key_for_key_ids(&self, service_key_ids: &[ApiKeyId]) -> Option<ApiKey> {
+        for key_id in service_key_ids {
+            if let Some(key) = self
+                .service_keys
+                .inner()
+                .iter()
+                .find(|cred| &cred.id == key_id)
+            {
+                return Some(key.clone());
+            }
+        }
+
+        None
+    }
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
-    let state = AppState::default();
+    // TODO: provide this with a config
+    let orchestrator_keys = ApiKeys::new(vec![ApiKey::new("orchestrator", "secret")]);
+    let service_keys = ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]);
+
+    let state = AppState::new(service_keys);
 
     let app = Router::new()
         .route("/metrics", get(metrics))
         .route("/register", any(register))
+        .layer(orchestrator_keys.auth_middleware()?)
         .nest("/roomserver", rooms::routes())
         .with_state(state);
 
     let address = "127.0.0.1:11222";
-    log::info!("Listen on address {address}");
+    log::info!("Listening on address {address}");
     let listener = tokio::net::TcpListener::bind(address).await?;
     axum::serve(listener, app).await?;
 

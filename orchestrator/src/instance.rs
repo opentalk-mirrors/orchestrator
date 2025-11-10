@@ -38,6 +38,7 @@ impl Instance {
             log::error!("");
             return;
         };
+
         let parse_message: Result<Register, _> = match register_message {
             Message::Text(utf8_bytes) => serde_json::from_str(&utf8_bytes),
             Message::Binary(bytes) => serde_json::from_slice(&bytes),
@@ -69,7 +70,13 @@ impl Instance {
                     let mut guard = state.roomserver_services.lock().await;
                     let instance = guard.entry(address.clone()).or_default();
 
+                    if !state.knows_any_of(&register.api_key_ids) {
+                        // TODO: reject request
+                        todo!()
+                    }
+
                     instance.metrics = register.metrics;
+                    instance.api_key_ids = register.api_key_ids;
                     instance.rooms = register_instance.rooms;
                 }
 

@@ -36,9 +36,10 @@ impl Signaling {
             .to_string()
             .into_client_request()?;
 
-        websocket_request
-            .headers_mut()
-            .insert(AUTHORIZATION, config.api_key.generate_jwt()?.try_into()?);
+        websocket_request.headers_mut().insert(
+            AUTHORIZATION,
+            format!("Bearer {}", config.api_key.generate_jwt()?).try_into()?,
+        );
 
         websocket_request.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
