@@ -1,0 +1,27 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+use std::collections::HashSet;
+
+use opentalk_types::common::rooms::RoomId;
+use serde::{Deserialize, Serialize};
+
+use crate::Event;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RegisterRecorder {
+    pub rooms: HashSet<RoomId>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum RecorderEvent {
+    RemoveRoom(RoomId),
+}
+
+impl From<RecorderEvent> for Event {
+    fn from(event: RecorderEvent) -> Event {
+        Event::Recorder(event)
+    }
+}

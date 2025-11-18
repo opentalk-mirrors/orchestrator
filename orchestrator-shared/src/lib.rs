@@ -3,12 +3,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use serde::{Deserialize, Serialize};
-#[cfg(any(
-    feature = "recording-service",
-    feature = "roomserver-service",
-    feature = "transcription-service"
-))]
-use {opentalk_types::common::rooms::RoomId, std::collections::HashSet};
+
+#[cfg(feature = "recording-service")]
+pub use crate::recorder::{RecorderEvent, RegisterRecorder};
+#[cfg(feature = "roomserver-service")]
+pub use crate::roomserver::{RegisterRoomServer, RoomServerEvent};
+#[cfg(feature = "transcription-service")]
+pub use crate::transcription::{RegisterTranscription, TranscriptionEvent};
+
+#[cfg(feature = "recording-service")]
+mod recorder;
+#[cfg(feature = "roomserver-service")]
+mod roomserver;
+#[cfg(feature = "transcription-service")]
+mod transcription;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
@@ -34,24 +42,6 @@ pub enum RegisterType {
     Transcription(RegisterTranscription),
 }
 
-#[cfg(feature = "recording-service")]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterRecorder {
-    pub rooms: HashSet<RoomId>,
-}
-
-#[cfg(feature = "roomserver-service")]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterRoomServer {
-    pub rooms: HashSet<RoomId>,
-}
-
-#[cfg(feature = "transcription-service")]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterTranscription {
-    pub rooms: HashSet<RoomId>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Event {
@@ -62,46 +52,4 @@ pub enum Event {
     RoomServer(RoomServerEvent),
     #[cfg(feature = "transcription-service")]
     Transcription(TranscriptionEvent),
-}
-
-#[cfg(feature = "recording-service")]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum RecorderEvent {
-    RemoveRoom(RoomId),
-}
-
-#[cfg(feature = "recording-service")]
-impl From<RecorderEvent> for Event {
-    fn from(event: RecorderEvent) -> Event {
-        Event::Recorder(event)
-    }
-}
-
-#[cfg(feature = "roomserver-service")]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum RoomServerEvent {
-    RemoveRoom(RoomId),
-}
-
-#[cfg(feature = "roomserver-service")]
-impl From<RoomServerEvent> for Event {
-    fn from(event: RoomServerEvent) -> Event {
-        Event::RoomServer(event)
-    }
-}
-
-#[cfg(feature = "transcription-service")]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum TranscriptionEvent {
-    RemoveRoom(RoomId),
-}
-
-#[cfg(feature = "transcription-service")]
-impl From<TranscriptionEvent> for Event {
-    fn from(event: TranscriptionEvent) -> Event {
-        Event::Transcription(event)
-    }
 }
