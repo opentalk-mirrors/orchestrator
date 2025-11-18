@@ -25,3 +25,14 @@ impl From<RecorderEvent> for Event {
         Event::Recorder(event)
     }
 }
+
+impl TryFrom<Event> for RecorderEvent {
+    type Error = Event;
+
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
+        match event {
+            Event::Recorder(recorder_event) => Ok(recorder_event),
+            event => Err(event),
+        }
+    }
+}

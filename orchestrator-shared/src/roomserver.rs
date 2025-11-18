@@ -25,3 +25,14 @@ impl From<RoomServerEvent> for Event {
         Event::RoomServer(event)
     }
 }
+
+impl TryFrom<Event> for RoomServerEvent {
+    type Error = Event;
+
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
+        match event {
+            Event::RoomServer(roomserver_event) => Ok(roomserver_event),
+            event => Err(event),
+        }
+    }
+}

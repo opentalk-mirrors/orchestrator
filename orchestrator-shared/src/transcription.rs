@@ -25,3 +25,14 @@ impl From<TranscriptionEvent> for Event {
         Event::Transcription(event)
     }
 }
+
+impl TryFrom<Event> for TranscriptionEvent {
+    type Error = Event;
+
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
+        match event {
+            Event::Transcription(transcription_event) => Ok(transcription_event),
+            event => Err(event),
+        }
+    }
+}
