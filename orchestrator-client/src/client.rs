@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use opentalk_orchestrator_shared::{Event, Metrics, Register, RegisterType};
+use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
 
 use crate::{config::OrchestratorConfig, signaling::Signaling};
@@ -21,6 +22,8 @@ pub trait StateProvider {
 
 /// The client to connect to the orchestrator service
 pub struct OrchestratorClient {
+    /// List of key ids that can be used to authorize requests to implementing service
+    key_ids: Vec<ApiKeyId>,
     config: OrchestratorConfig,
     event_receiver: mpsc::Receiver<Event>,
 }
@@ -43,11 +46,15 @@ impl OrchestratorHandle {
 
 impl OrchestratorClient {
     /// Creates a new [`OrchestratorClient`]
-    pub async fn create(config: OrchestratorConfig) -> (Self, OrchestratorHandle) {
+    pub async fn create<K: IntoIterator<Item = ApiKeyId>>(
+        config: OrchestratorConfig,
+        key_ids: K,
+    ) -> (Self, OrchestratorHandle) {
         let (event_sender, event_receiver) = mpsc::channel::<Event>(32);
 
         (
             Self {
+                key_ids: key_ids.into_iter().collect(),
                 config,
                 event_receiver,
             },
@@ -98,6 +105,7 @@ impl OrchestratorClient {
                 &self.config,
                 Register {
                     address: client_address.clone(),
+                    api_key_ids: self.key_ids.clone(),
                     metrics: state_provider.metrics().await,
                     register_type: state_provider.register_type().await,
                 },

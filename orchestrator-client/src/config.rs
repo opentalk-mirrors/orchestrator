@@ -4,6 +4,7 @@
 
 use std::{fmt::Display, str::FromStr};
 
+use opentalk_service_auth::ApiKey;
 use serde::{Deserialize, Deserializer, de};
 use url::{ParseError, Url};
 
@@ -12,6 +13,9 @@ use url::{ParseError, Url};
 pub struct OrchestratorConfig {
     /// The base url of the orchestrator
     pub url: OrchestratorBaseUrl,
+
+    /// The key for the orchestrators API
+    pub api_key: ApiKey,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]

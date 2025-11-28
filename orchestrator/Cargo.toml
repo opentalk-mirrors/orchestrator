@@ -35,6 +35,8 @@ opentalk-orchestrator-shared = { workspace = true, features = [
 ] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tracing-subscriber.workspace = true
+opentalk-service-auth = { workspace = true, features = ["axum"] }
+thiserror.workspace = true
 
 [dev-dependencies]
 test-log.workspace = true
