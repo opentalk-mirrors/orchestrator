@@ -23,7 +23,7 @@ log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types-common.workspace = true
-opentalk-types-api-common.workspace = true
+opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
 rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
