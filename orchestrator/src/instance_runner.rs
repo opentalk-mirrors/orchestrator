@@ -19,19 +19,27 @@ use crate::{
 
 const HEARTBEAT_TIMEOUT_SECONDS: u64 = 5;
 
-pub(crate) struct Instance {
+pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Address, T>>>;
+
+/// Starts and maintains the websocket task for a service instance
+pub(crate) struct InstanceRunner {
+    /// The websocket connection to the instance
     pub(crate) socket: axum::extract::ws::WebSocket,
+    /// The HTTP address of the instance
     pub(crate) address: Address,
+    /// The service instance type
+    ///
+    /// over some instance trait
     pub(crate) service_type: ServiceType,
 }
 
 pub(crate) enum ServiceType {
-    Recorder(Arc<Mutex<HashMap<Address, RecorderInstance>>>),
-    RoomServer(Arc<Mutex<HashMap<Address, RoomServerInstance>>>),
-    Transcription(Arc<Mutex<HashMap<Address, TranscriptionInstance>>>),
+    Recorder(InstanceCollection<RecorderInstance>),
+    RoomServer(InstanceCollection<RoomServerInstance>),
+    Transcription(InstanceCollection<TranscriptionInstance>),
 }
 
-impl Instance {
+impl InstanceRunner {
     pub(crate) async fn handle_socket(mut socket: axum::extract::ws::WebSocket, state: AppState) {
         let Some(Ok(register_message)) = socket.recv().await else {
             // TODO
@@ -60,7 +68,7 @@ impl Instance {
         let address = register.address;
         let mut this = match register.register_type {
             // TODO
-            RegisterType::Recorder(_register_instance) => Instance {
+            RegisterType::Recorder(_register_instance) => InstanceRunner {
                 socket,
                 address: address.clone(),
                 service_type: ServiceType::Recorder(state.recorder_services),
@@ -75,19 +83,19 @@ impl Instance {
                         todo!()
                     }
 
-                    instance.metrics = register.metrics;
-                    instance.api_key_ids = register.api_key_ids;
-                    instance.rooms = register_instance.rooms;
+                    instance.data.metrics = register.metrics;
+                    instance.data.api_key_ids = register.api_key_ids;
+                    instance.data.rooms = register_instance.rooms;
                 }
 
-                Instance {
+                InstanceRunner {
                     socket,
                     address: address.clone(),
                     service_type: ServiceType::RoomServer(state.roomserver_services),
                 }
             }
             // TODO
-            RegisterType::Transcription(_register_instance) => Instance {
+            RegisterType::Transcription(_register_instance) => InstanceRunner {
                 socket,
                 address: address.clone(),
                 service_type: ServiceType::Transcription(state.transcription_services),
@@ -176,7 +184,7 @@ impl Instance {
                 ServiceType::RoomServer(instances) => {
                     let mut guard = instances.lock().await;
                     let instance = guard.entry(self.address.clone()).or_default();
-                    instance.metrics = metrics.clone();
+                    instance.data.metrics = metrics.clone();
                 }
                 ServiceType::Transcription(instances) => {
                     let mut guard = instances.lock().await;

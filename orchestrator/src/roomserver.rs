@@ -2,41 +2,47 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::HashSet;
-
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use bytes::Bytes;
-use opentalk_orchestrator_shared::{Metrics, RoomServerEvent};
+use opentalk_orchestrator_shared::RoomServerEvent;
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend};
-use opentalk_service_auth::{ApiKeyId, EncodingError};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_common::rooms::RoomId;
-use rand::seq::IteratorRandom;
 use reqwest::header::AUTHORIZATION;
 use serde::{Deserialize, Serialize};
 
-use crate::{Address, AppState};
+use crate::{
+    AppState,
+    instance_selector::{InstanceData, InstanceDataProvider, SelectedInstance},
+};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct RoomServerInstance {
-    pub(crate) metrics: Metrics,
-    /// Possible key ids for requests towards the service
-    pub(crate) api_key_ids: Vec<ApiKeyId>,
-    pub(crate) rooms: HashSet<RoomId>,
+    pub data: InstanceData,
+}
+
+impl InstanceDataProvider for RoomServerInstance {
+    fn instance_data(&self) -> &InstanceData {
+        &self.data
+    }
+
+    fn instance_data_mut(&mut self) -> &mut InstanceData {
+        &mut self.data
+    }
 }
 
 impl RoomServerInstance {
     pub(crate) async fn handle_event(&mut self, event: &RoomServerEvent) {
         match event {
             RoomServerEvent::RemoveRoom(remove_room_id) => {
-                self.rooms.retain(|room_id| room_id != remove_room_id);
+                self.data.rooms.retain(|room_id| room_id != remove_room_id);
             }
         }
     }
@@ -51,7 +57,7 @@ impl RoomBackend for AppState {
     ) -> Result<RoomAction, ApiError> {
         let SelectedInstance {
             address,
-            auth_header: token,
+            auth_header,
         } = match self.select_roomserver(room_id).await {
             Ok(instance) => instance,
             Err(err) => {
@@ -61,8 +67,6 @@ impl RoomBackend for AppState {
         };
 
         log::debug!("send put request to roomserver '{address}'");
-
-        let auth_header = format!("Bearer {}", token);
 
         let response = self
             .client
@@ -101,7 +105,7 @@ impl RoomBackend for AppState {
     ) -> Result<RoomServerAccess, ApiError> {
         let SelectedInstance {
             address,
-            auth_header: token,
+            auth_header,
         } = match self.select_roomserver(room_id).await {
             Ok(instance) => instance,
             Err(err) => {
@@ -115,8 +119,6 @@ impl RoomBackend for AppState {
             client_parameters,
             room_parameters,
         };
-
-        let auth_header = format!("Bearer {}", token);
 
         let response = self
             .client
@@ -147,106 +149,6 @@ impl RoomBackend for AppState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct SelectedInstance {
-    /// The address of the selected instance
-    address: Address,
-    /// The authorization header for request towards the instance
-    auth_header: String,
-}
-
-#[derive(Debug, thiserror::Error)]
-enum InstanceError {
-    #[error("no instances of the requested service are currently available")]
-    NotAvailable,
-
-    #[error("no matching service API keys found for key ids: {0:#?}")]
-    UnknownApiKeyIds(Vec<ApiKeyId>),
-
-    #[error("failed to create authorization header for key id {key_id}: {err:?}")]
-    AuthHeader {
-        key_id: ApiKeyId,
-        err: EncodingError,
-    },
-}
-
-impl From<InstanceError> for ApiError {
-    fn from(instance_error: InstanceError) -> Self {
-        match instance_error {
-            InstanceError::NotAvailable => ApiError::service_unavailable()
-                .with_message("not_available")
-                .with_message(instance_error.to_string()),
-            InstanceError::UnknownApiKeyIds { .. } | InstanceError::AuthHeader { .. } => {
-                ApiError::internal().with_message("internal authorization error")
-            }
-        }
-    }
-}
-
-impl AppState {
-    /// Select a roomserver instance for the given room id
-    async fn select_roomserver(&self, room_id: RoomId) -> Result<SelectedInstance, InstanceError> {
-        let mut roomservers = self.roomserver_services.lock().await;
-
-        // No roomservers are registered
-        if roomservers.is_empty() {
-            return Err(InstanceError::NotAvailable);
-        }
-
-        if let Some((address, instance)) = roomservers
-            .iter()
-            .find(|(_, instance)| instance.rooms.contains(&room_id))
-        {
-            let auth_header = self.get_auth_header_for_instance(instance)?;
-
-            return Ok(SelectedInstance {
-                address: address.clone(),
-                auth_header,
-            });
-        }
-
-        let Some((address, instance)) = roomservers
-            .iter_mut()
-            .filter(|(_, instance)| instance.metrics.accepting_jobs)
-            .choose(&mut rand::rng())
-        else {
-            return Err(InstanceError::NotAvailable);
-        };
-
-        let auth_header = self.get_auth_header_for_instance(instance)?;
-
-        instance.rooms.insert(room_id);
-
-        Ok(SelectedInstance {
-            address: address.clone(),
-            auth_header,
-        })
-    }
-
-    fn get_auth_header_for_instance(
-        &self,
-        instance: &RoomServerInstance,
-    ) -> Result<String, InstanceError> {
-        let key_ids = &instance.api_key_ids;
-
-        let Some(api_key) = self.get_api_key_for_key_ids(key_ids) else {
-            return Err(InstanceError::UnknownApiKeyIds(key_ids.clone()));
-        };
-
-        let jwt = match api_key.generate_jwt() {
-            Ok(jwt) => format!("Bearer {jwt}"),
-            Err(err) => {
-                return Err(InstanceError::AuthHeader {
-                    key_id: api_key.id,
-                    err,
-                });
-            }
-        };
-
-        Ok(jwt)
-    }
-}
-
 fn deserialize_token_response<T: for<'a> Deserialize<'a>>(
     status: StatusCode,
     body: &Bytes,
@@ -271,7 +173,7 @@ mod tests {
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::rooms::RoomId;
 
-    use crate::AppState;
+    use crate::{AppState, instance_selector::InstanceData};
 
     #[test_log::test(tokio::test)]
     async fn select_existing_room() {
@@ -293,13 +195,15 @@ mod tests {
         roomservers.insert(
             server_1.clone(),
             super::RoomServerInstance {
-                metrics: Metrics {
-                    load: 80,
-                    accepting_jobs: true,
-                },
+                data: InstanceData {
+                    metrics: Metrics {
+                        load: 80,
+                        accepting_jobs: true,
+                    },
 
-                api_key_ids: vec!["roomserver".into()],
-                rooms,
+                    api_key_ids: vec!["roomserver".into()],
+                    rooms,
+                },
             },
         );
 
@@ -310,12 +214,15 @@ mod tests {
         roomservers.insert(
             server_2.clone(),
             super::RoomServerInstance {
-                metrics: Metrics {
-                    load: 20,
-                    accepting_jobs: true,
+                data: InstanceData {
+                    metrics: Metrics {
+                        load: 20,
+                        accepting_jobs: true,
+                    },
+
+                    api_key_ids: vec!["roomserver".into()],
+                    rooms,
                 },
-                api_key_ids: vec!["roomserver".into()],
-                rooms,
             },
         );
 
