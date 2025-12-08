@@ -2,34 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::HashSet;
-
-use opentalk_orchestrator_shared::Metrics;
 use opentalk_service_auth::{ApiKeyId, EncodingError};
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use rand::prelude::IteratorRandom;
-use serde::Serialize;
 
-use crate::{Address, AppState, instance_runner::InstanceCollection};
-
-/// The generic data that is held by each instance
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct InstanceData {
-    /// The current metrics of the instance
-    pub(crate) metrics: Metrics,
-    /// Possible key ids for requests towards the service
-    pub(crate) api_key_ids: Vec<ApiKeyId>,
-    /// Rooms that are assigned to the instance
-    pub(crate) rooms: HashSet<RoomId>,
-}
-
-/// A trait to expose the [`InstanceData`] on an instance
-pub(crate) trait InstanceDataProvider {
-    fn instance_data(&self) -> &InstanceData;
-
-    fn instance_data_mut(&mut self) -> &mut InstanceData;
-}
+use crate::{Address, AppState, instance::ServiceInstance, instance_runner::InstanceCollection};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SelectedInstance {
@@ -41,7 +19,7 @@ pub(crate) struct SelectedInstance {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum InstanceError {
-    #[error("no instances of the requested service are currently available")]
+    #[error("no instance of the requested service are currently available")]
     NotAvailable,
 
     #[error("no matching service API keys found for key ids: {0:#?}")]
@@ -76,21 +54,21 @@ impl AppState {
             .await
     }
 
-    async fn select_instance<T: InstanceDataProvider>(
+    async fn select_instance<T: ServiceInstance>(
         &self,
-        room_id: RoomId,
+        managed_data: T::ManagedResource,
         instances: &InstanceCollection<T>,
     ) -> Result<SelectedInstance, InstanceError> {
         let mut instances = instances.lock().await;
 
-        // No instances for are registered
+        // No instances are registered for the requested service type
         if instances.is_empty() {
             return Err(InstanceError::NotAvailable);
         }
 
         if let Some((address, instance)) = instances
             .iter()
-            .find(|(_, instance)| instance.instance_data().rooms.contains(&room_id))
+            .find(|(_, instance)| instance.manages(&managed_data))
         {
             let auth_header = self.get_auth_header_for_instance(instance)?;
 
@@ -110,7 +88,7 @@ impl AppState {
 
         let auth_header = self.get_auth_header_for_instance(instance)?;
 
-        instance.instance_data_mut().rooms.insert(room_id);
+        instance.add_managed_resource(managed_data);
 
         Ok(SelectedInstance {
             address: address.clone(),
@@ -118,7 +96,7 @@ impl AppState {
         })
     }
 
-    fn get_auth_header_for_instance<T: InstanceDataProvider>(
+    fn get_auth_header_for_instance<T: ServiceInstance>(
         &self,
         instance: &T,
     ) -> Result<String, InstanceError> {

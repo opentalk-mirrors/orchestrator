@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::HashSet;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::http::StatusCode;
@@ -20,15 +22,36 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppState,
-    instance_selector::{InstanceData, InstanceDataProvider, SelectedInstance},
+    instance::{InstanceData, ServiceInstance},
+    instance_selector::SelectedInstance,
 };
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct RoomServerInstance {
+pub(crate) struct RoomserverInstance {
+    pub breakout_rooms: HashSet<RoomId>,
     pub data: InstanceData,
 }
 
-impl InstanceDataProvider for RoomServerInstance {
+#[async_trait::async_trait]
+impl ServiceInstance for RoomserverInstance {
+    type Event = RoomServerEvent;
+    type ManagedResource = RoomId;
+
+    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
+        Self {
+            breakout_rooms: resources,
+            data: InstanceData::default(),
+        }
+    }
+
+    fn manages(&self, resource: &Self::ManagedResource) -> bool {
+        self.breakout_rooms.contains(resource)
+    }
+
+    fn add_managed_resource(&mut self, managed_data: Self::ManagedResource) {
+        self.breakout_rooms.insert(managed_data);
+    }
+
     fn instance_data(&self) -> &InstanceData {
         &self.data
     }
@@ -36,13 +59,12 @@ impl InstanceDataProvider for RoomServerInstance {
     fn instance_data_mut(&mut self) -> &mut InstanceData {
         &mut self.data
     }
-}
 
-impl RoomServerInstance {
-    pub(crate) async fn handle_event(&mut self, event: &RoomServerEvent) {
+    async fn handle_event(&mut self, event: Self::Event) {
         match event {
             RoomServerEvent::RemoveRoom(remove_room_id) => {
-                self.data.rooms.retain(|room_id| room_id != remove_room_id);
+                self.breakout_rooms
+                    .retain(|room_id| room_id != &remove_room_id);
             }
         }
     }
@@ -173,7 +195,7 @@ mod tests {
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::rooms::RoomId;
 
-    use crate::{AppState, instance_selector::InstanceData};
+    use crate::{AppState, instance::InstanceData};
 
     #[test_log::test(tokio::test)]
     async fn select_existing_room() {
@@ -194,7 +216,8 @@ mod tests {
 
         roomservers.insert(
             server_1.clone(),
-            super::RoomServerInstance {
+            super::RoomserverInstance {
+                breakout_rooms: rooms,
                 data: InstanceData {
                     metrics: Metrics {
                         load: 80,
@@ -202,7 +225,6 @@ mod tests {
                     },
 
                     api_key_ids: vec!["roomserver".into()],
-                    rooms,
                 },
             },
         );
@@ -213,7 +235,8 @@ mod tests {
 
         roomservers.insert(
             server_2.clone(),
-            super::RoomServerInstance {
+            super::RoomserverInstance {
+                breakout_rooms: rooms,
                 data: InstanceData {
                     metrics: Metrics {
                         load: 20,
@@ -221,7 +244,6 @@ mod tests {
                     },
 
                     api_key_ids: vec!["roomserver".into()],
-                    rooms,
                 },
             },
         );

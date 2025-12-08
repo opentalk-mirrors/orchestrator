@@ -75,7 +75,7 @@ impl Signaling {
                 return Ok(());
             };
 
-            // TODO: trying to parse unit type, oof
+            // TODO: implement proper response types
             match serde_json::from_str(&payload) {
                 Ok(payload) => return Ok(payload),
                 Err(e) => log::debug!("Failed to parse event: {e:?}"),

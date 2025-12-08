@@ -11,7 +11,13 @@ use crate::Event;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterRecorder {
-    pub rooms: HashSet<RoomId>,
+    pub rooms: HashSet<RecorderResource>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash, Eq)]
+pub struct RecorderResource {
+    room_id: RoomId,
+    breakout_id: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

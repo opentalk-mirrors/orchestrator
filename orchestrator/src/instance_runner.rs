@@ -6,119 +6,60 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result, bail};
 use axum::extract::ws::Message;
-use opentalk_orchestrator_shared::{Event, Register, RegisterType};
+use opentalk_orchestrator_shared::Event;
 use tokio::{
     sync::Mutex,
     time::{Instant, Interval},
 };
 
-use crate::{
-    Address, AppState, recorder::RecorderInstance, roomserver::RoomServerInstance,
-    transcription::TranscriptionInstance,
-};
+use crate::{Address, instance::ServiceInstance};
 
-const HEARTBEAT_TIMEOUT_SECONDS: u64 = 5;
+const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Address, T>>>;
 
-/// Starts and maintains the websocket task for a service instance
-pub(crate) struct InstanceRunner {
+/// The runner for a service instance
+pub(crate) struct InstanceRunner<T: ServiceInstance> {
     /// The websocket connection to the instance
     pub(crate) socket: axum::extract::ws::WebSocket,
     /// The HTTP address of the instance
     pub(crate) address: Address,
-    /// The service instance type
+    /// A reference counter to the list of global service instances of kind `T`
     ///
-    /// over some instance trait
-    pub(crate) service_type: ServiceType,
+    /// When the runner exits, the associated service instance gets removed from this collection.
+    pub(crate) instances: InstanceCollection<T>,
 }
 
-pub(crate) enum ServiceType {
-    Recorder(InstanceCollection<RecorderInstance>),
-    RoomServer(InstanceCollection<RoomServerInstance>),
-    Transcription(InstanceCollection<TranscriptionInstance>),
-}
-
-impl InstanceRunner {
-    pub(crate) async fn handle_socket(mut socket: axum::extract::ws::WebSocket, state: AppState) {
-        let Some(Ok(register_message)) = socket.recv().await else {
-            // TODO
-            log::error!("");
-            return;
-        };
-
-        let parse_message: Result<Register, _> = match register_message {
-            Message::Text(utf8_bytes) => serde_json::from_str(&utf8_bytes),
-            Message::Binary(bytes) => serde_json::from_slice(&bytes),
-            _ => {
-                // TODO
-                log::error!("");
-                return;
-            }
-        };
-        let register = match parse_message {
-            Ok(register) => register,
-            Err(err) => {
-                log::error!("unable to parse register message: {err:?}");
-                return;
-            }
-        };
-        log::debug!("received register message: {register:?}");
-
-        let address = register.address;
-        let mut this = match register.register_type {
-            // TODO
-            RegisterType::Recorder(_register_instance) => InstanceRunner {
-                socket,
-                address: address.clone(),
-                service_type: ServiceType::Recorder(state.recorder_services),
-            },
-            RegisterType::RoomServer(register_instance) => {
-                {
-                    let mut guard = state.roomserver_services.lock().await;
-                    let instance = guard.entry(address.clone()).or_default();
-
-                    if !state.knows_any_of(&register.api_key_ids) {
-                        // TODO: reject request
-                        todo!()
-                    }
-
-                    instance.data.metrics = register.metrics;
-                    instance.data.api_key_ids = register.api_key_ids;
-                    instance.data.rooms = register_instance.rooms;
-                }
-
-                InstanceRunner {
-                    socket,
-                    address: address.clone(),
-                    service_type: ServiceType::RoomServer(state.roomserver_services),
-                }
-            }
-            // TODO
-            RegisterType::Transcription(_register_instance) => InstanceRunner {
-                socket,
-                address: address.clone(),
-                service_type: ServiceType::Transcription(state.transcription_services),
-            },
-        };
-
-        if let Err(err) = this.run().await {
-            log::error!("run websocket connection for address '{address}' failed: {err:?}");
+impl<T: ServiceInstance> InstanceRunner<T> {
+    pub(crate) fn new(
+        socket: axum::extract::ws::WebSocket,
+        address: String,
+        instances: InstanceCollection<T>,
+    ) -> Self {
+        Self {
+            socket,
+            address,
+            instances,
         }
-
-        this.close().await;
     }
 
-    async fn run(&mut self) -> Result<()> {
-        let mut heartbeat = tokio::time::interval_at(
-            Instant::now() + Duration::from_secs(HEARTBEAT_TIMEOUT_SECONDS),
-            Duration::from_secs(5),
-        );
+    /// Run the event loop until the connection is closed by the service
+    pub(crate) async fn run(mut self) -> Result<()> {
+        let result = self.inner_run().await;
+
+        self.remove_associated_instance().await;
+
+        result
+    }
+
+    async fn inner_run(&mut self) -> Result<()> {
+        let mut heartbeat =
+            tokio::time::interval_at(Instant::now() + HEARTBEAT_TIMEOUT, HEARTBEAT_TIMEOUT);
 
         loop {
             tokio::select! {
                 _ = heartbeat.tick() => {
-                    log::error!("heartbeat timeout triggered, there was no heartbeat message within '{HEARTBEAT_TIMEOUT_SECONDS}' seconds");
+                    log::error!("heartbeat timeout({HEARTBEAT_TIMEOUT:?}) triggered");
                     break;
                 }
                 msg = self.socket.recv() => self.handle_message(msg, &mut heartbeat).await?
@@ -128,22 +69,14 @@ impl InstanceRunner {
         Ok(())
     }
 
+    /// Handle an incoming websocket message
     async fn handle_message(
         &mut self,
         msg: Option<Result<Message, axum::Error>>,
         heartbeat: &mut Interval,
     ) -> Result<()> {
-        let Some(msg) = msg else {
-            bail!(
-                "websocket for connetion '{}' closed unexpectedly",
-                &self.address
-            )
-        };
-        let msg = match msg {
-            Ok(msg) => msg,
-            Err(err) => bail!("received websocket error for connection '{}': {err:?}", {
-                &self.address
-            }),
+        let Some(msg) = msg.transpose().context("error on websocket connection")? else {
+            bail!("socket unexpectedly closed by client",)
         };
 
         let event: Event = match msg {
@@ -166,72 +99,41 @@ impl InstanceRunner {
                 .with_context(|| format!("parse message for connection '{}'", self.address))?,
         };
 
-        if let Event::Metrics(ref metrics) = event {
-            log::trace!(
-                "set metrics '{metrics:?}' for connection '{}'",
+        let mut guard = self.instances.lock().await;
+
+        let Some(instance) = guard.get_mut(&self.address) else {
+            bail!(
+                "Failed to get service instance for connected service ({})",
                 self.address
-            );
+            )
+        };
 
-            log::trace!("reset heartbeat for connection '{}'", self.address);
-            heartbeat.reset();
+        match event {
+            Event::Metrics(metrics) => {
+                log::trace!(
+                    "set metrics '{metrics:?}' for connection '{}'",
+                    self.address
+                );
 
-            match &mut self.service_type {
-                ServiceType::Recorder(instances) => {
-                    let mut guard = instances.lock().await;
-                    let instance = guard.entry(self.address.clone()).or_default();
-                    instance.metrics = metrics.clone();
-                }
-                ServiceType::RoomServer(instances) => {
-                    let mut guard = instances.lock().await;
-                    let instance = guard.entry(self.address.clone()).or_default();
-                    instance.data.metrics = metrics.clone();
-                }
-                ServiceType::Transcription(instances) => {
-                    let mut guard = instances.lock().await;
-                    let instance = guard.entry(self.address.clone()).or_default();
-                    instance.metrics = metrics.clone();
-                }
+                log::trace!("reset heartbeat for connection '{}'", self.address);
+                heartbeat.reset();
+
+                instance.instance_data_mut().metrics = metrics;
+            }
+            event => {
+                let Ok(service_event) = event.try_into() else {
+                    // event mismatch
+                    todo!()
+                };
+
+                instance.handle_event(service_event).await
             }
         }
-
-        match &mut self.service_type {
-            ServiceType::Recorder(instances) => {
-                let mut guard = instances.lock().await;
-                let instance = guard.entry(self.address.clone()).or_default();
-                if let Event::Recorder(event) = &event {
-                    instance.handle_event(event).await
-                }
-            }
-            ServiceType::RoomServer(instances) => {
-                let mut guard = instances.lock().await;
-                let instance = guard.entry(self.address.clone()).or_default();
-                if let Event::RoomServer(event) = &event {
-                    instance.handle_event(event).await
-                }
-            }
-            ServiceType::Transcription(instances) => {
-                let mut guard = instances.lock().await;
-                let instance = guard.entry(self.address.clone()).or_default();
-                if let Event::Transcription(event) = &event {
-                    instance.handle_event(event).await
-                }
-            }
-        }
-
         Ok(())
     }
 
-    async fn close(&mut self) {
-        match &mut self.service_type {
-            ServiceType::Recorder(instances) => {
-                instances.lock().await.remove(&self.address);
-            }
-            ServiceType::RoomServer(instances) => {
-                instances.lock().await.remove(&self.address);
-            }
-            ServiceType::Transcription(instances) => {
-                instances.lock().await.remove(&self.address);
-            }
-        }
+    /// Remove the associated service instance from the global [`InstanceCollection`]
+    async fn remove_associated_instance(&mut self) {
+        self.instances.lock().await.remove(&self.address);
     }
 }

@@ -1188,6 +1188,7 @@ dependencies = [
  "opentalk-service-auth",
  "opentalk-types",
  "serde",
+ "thiserror",
 ]
 
 [[package]]

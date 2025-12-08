@@ -10,18 +10,21 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{any, get},
 };
-use instance_runner::InstanceRunner;
 use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
-use roomserver::RoomServerInstance;
+use roomserver::RoomserverInstance;
 use transcription::TranscriptionInstance;
 
-use crate::{instance_runner::InstanceCollection, recorder::RecorderInstance};
+use crate::{
+    instance_runner::InstanceCollection, recorder::RecorderInstance, register::handle_socket,
+};
 
+mod instance;
 mod instance_runner;
 mod instance_selector;
 mod recorder;
+mod register;
 mod roomserver;
 mod transcription;
 
@@ -39,7 +42,7 @@ pub(crate) struct AppState {
     client: Client,
     service_keys: ApiKeys,
     recorder_services: InstanceCollection<RecorderInstance>,
-    roomserver_services: InstanceCollection<RoomServerInstance>,
+    roomserver_services: InstanceCollection<RoomserverInstance>,
     transcription_services: InstanceCollection<TranscriptionInstance>,
 }
 
@@ -130,5 +133,5 @@ async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 
 async fn register(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.protocols(["opentalk-orchestrator-json-v1.0"])
-        .on_upgrade(|socket| InstanceRunner::handle_socket(socket, state))
+        .on_upgrade(|socket| handle_socket(socket, state))
 }

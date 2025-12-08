@@ -4,18 +4,47 @@
 
 use std::collections::HashSet;
 
-use opentalk_orchestrator_shared::{Metrics, TranscriptionEvent};
+use opentalk_orchestrator_shared::TranscriptionEvent;
 use opentalk_types_common::rooms::RoomId;
 use serde::Serialize;
 
+use crate::instance::{InstanceData, ServiceInstance};
+
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct TranscriptionInstance {
-    pub(crate) metrics: Metrics,
-    pub(crate) rooms: HashSet<RoomId>,
+    pub rooms: HashSet<RoomId>,
+    pub data: InstanceData,
 }
 
-impl TranscriptionInstance {
-    pub(crate) async fn handle_event(&mut self, _event: &TranscriptionEvent) {
-        // TODO
+#[async_trait::async_trait]
+impl ServiceInstance for TranscriptionInstance {
+    type Event = TranscriptionEvent;
+    type ManagedResource = RoomId;
+
+    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
+        Self {
+            rooms: resources,
+            data: InstanceData::default(),
+        }
+    }
+
+    fn manages(&self, _resource: &Self::ManagedResource) -> bool {
+        todo!()
+    }
+
+    fn add_managed_resource(&mut self, _resource: Self::ManagedResource) {
+        todo!()
+    }
+
+    async fn handle_event(&mut self, _event: Self::Event) {
+        todo!()
+    }
+
+    fn instance_data(&self) -> &InstanceData {
+        &self.data
+    }
+
+    fn instance_data_mut(&mut self) -> &mut InstanceData {
+        &mut self.data
     }
 }
