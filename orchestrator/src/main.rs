@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use axum::{
     Json, Router,
@@ -10,6 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{any, get},
 };
+use clap::Parser;
 use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
@@ -91,11 +94,19 @@ impl AppState {
     }
 }
 
+#[derive(Debug, Clone, Parser)]
+struct Args {
+    #[clap(short, long, help = "Specify path to configuration file")]
+    pub(crate) config: Option<PathBuf>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     tracing_subscriber::fmt::init();
 
-    let settings = Settings::load(None)?;
+    let settings = Settings::load(args.config.as_deref())?;
 
     let state = AppState::new(settings.services.keys);
 
