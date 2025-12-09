@@ -4,18 +4,46 @@
 
 use std::collections::HashSet;
 
-use opentalk_orchestrator_shared::{Metrics, RecorderEvent};
-use opentalk_types_common::rooms::RoomId;
+use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource};
 use serde::Serialize;
+
+use crate::instance::{InstanceData, ServiceInstance};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct RecorderInstance {
-    pub(crate) metrics: Metrics,
-    pub(crate) rooms: HashSet<RoomId>,
+    rooms: HashSet<RecorderResource>,
+    data: InstanceData,
 }
 
-impl RecorderInstance {
-    pub(crate) async fn handle_event(&mut self, _event: &RecorderEvent) {
-        // TODO
+#[async_trait::async_trait]
+impl ServiceInstance for RecorderInstance {
+    type Event = RecorderEvent;
+    type ManagedResource = RecorderResource;
+
+    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
+        Self {
+            rooms: resources,
+            data: InstanceData::default(),
+        }
+    }
+
+    fn manages(&self, resource: &Self::ManagedResource) -> bool {
+        self.rooms.contains(resource)
+    }
+
+    fn add_managed_resource(&mut self, resource: Self::ManagedResource) {
+        self.rooms.insert(resource);
+    }
+
+    async fn handle_event(&mut self, _event: Self::Event) {
+        todo!()
+    }
+
+    fn instance_data(&self) -> &InstanceData {
+        &self.data
+    }
+
+    fn instance_data_mut(&mut self) -> &mut InstanceData {
+        &mut self.data
     }
 }

@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use opentalk_orchestrator_shared::{Event, Metrics, Register, RegisterType};
+use opentalk_orchestrator_shared::{Event, Metrics, Register, RegisterData, RegisterType};
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
 
@@ -104,9 +104,11 @@ impl OrchestratorClient {
             let signaling = match Signaling::connect(
                 &self.config,
                 Register {
-                    address: client_address.clone(),
-                    api_key_ids: self.key_ids.clone(),
-                    metrics: state_provider.metrics().await,
+                    register_data: RegisterData {
+                        address: client_address.clone(),
+                        api_key_ids: self.key_ids.clone(),
+                        metrics: state_provider.metrics().await,
+                    },
                     register_type: state_provider.register_type().await,
                 },
             )
