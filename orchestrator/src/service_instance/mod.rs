@@ -8,6 +8,10 @@ use opentalk_orchestrator_shared::{Event, Metrics};
 use opentalk_service_auth::ApiKeyId;
 use serde::Serialize;
 
+pub(crate) mod registration;
+pub(crate) mod runner;
+pub(crate) mod selection;
+
 /// The common behavior for orchestrated service instances
 #[async_trait::async_trait]
 pub(crate) trait ServiceInstance: 'static + Default {

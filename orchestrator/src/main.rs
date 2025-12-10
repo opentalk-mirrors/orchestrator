@@ -17,15 +17,13 @@ use roomserver::RoomserverInstance;
 use transcription::TranscriptionInstance;
 
 use crate::{
-    instance_runner::InstanceCollection, recorder::RecorderInstance, register::handle_socket,
+    recorder::RecorderInstance,
+    service_instance::{registration::handle_socket, runner::InstanceCollection},
 };
 
-mod instance;
-mod instance_runner;
-mod instance_selector;
 mod recorder;
-mod register;
 mod roomserver;
+mod service_instance;
 mod transcription;
 
 pub type Address = String;

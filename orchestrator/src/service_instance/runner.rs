@@ -12,7 +12,7 @@ use tokio::{
     time::{Instant, Interval},
 };
 
-use crate::{Address, instance::ServiceInstance};
+use crate::{Address, service_instance::ServiceInstance};
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 

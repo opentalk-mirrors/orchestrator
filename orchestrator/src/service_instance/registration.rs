@@ -18,8 +18,10 @@ use tokio::time::timeout;
 
 use crate::{
     AppState,
-    instance::ServiceInstance,
-    instance_runner::{InstanceCollection, InstanceRunner},
+    service_instance::{
+        ServiceInstance,
+        runner::{InstanceCollection, InstanceRunner},
+    },
 };
 
 pub(crate) const REGISTRATION_TIMEOUT: Duration = Duration::from_secs(10);

@@ -22,8 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppState,
-    instance::{InstanceData, ServiceInstance},
-    instance_selector::SelectedInstance,
+    service_instance::{InstanceData, ServiceInstance, selection::SelectedInstance},
 };
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -195,7 +194,7 @@ mod tests {
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::rooms::RoomId;
 
-    use crate::{AppState, instance::InstanceData};
+    use crate::{AppState, service_instance::InstanceData};
 
     #[test_log::test(tokio::test)]
     async fn select_existing_room() {
