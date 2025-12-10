@@ -7,7 +7,10 @@ use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use rand::prelude::IteratorRandom;
 
-use crate::{Address, AppState, instance::ServiceInstance, instance_runner::InstanceCollection};
+use crate::{
+    Address, AppState,
+    service_instance::{ServiceInstance, runner::InstanceCollection},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SelectedInstance {

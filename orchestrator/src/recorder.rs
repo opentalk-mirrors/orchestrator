@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource};
 use serde::Serialize;
 
-use crate::instance::{InstanceData, ServiceInstance};
+use crate::service_instance::{InstanceData, ServiceInstance};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct RecorderInstance {

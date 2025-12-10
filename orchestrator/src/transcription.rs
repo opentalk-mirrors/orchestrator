@@ -8,7 +8,7 @@ use opentalk_orchestrator_shared::TranscriptionEvent;
 use opentalk_types_common::rooms::RoomId;
 use serde::Serialize;
 
-use crate::instance::{InstanceData, ServiceInstance};
+use crate::service_instance::{InstanceData, ServiceInstance};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct TranscriptionInstance {
