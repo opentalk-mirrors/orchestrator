@@ -1193,13 +1193,14 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.15"
+version = "0.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08a19007f06632634e597a772f9d65e7f8fcb0a8097efc750da5e117c1506a36"
+checksum = "76993cc4cfa0c850f2d26d05a84d12baa1b0257711071d9e1a500e9eaa8b42b9"
 dependencies = [
  "anyhow",
  "chrono",
  "derive_more",
+ "icu_locid",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
@@ -1212,20 +1213,20 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.15"
+version = "0.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22e63a8d56be01e4e2ecf6fd9563d4b6e51a8b4f6593db1ec29afef4359f38a0"
+checksum = "231321b9f7781bc22138d83b95ee0731edcd7141199c8aec6fe78b5e219eb29f"
 dependencies = [
  "async-trait",
  "axum",
  "bytes",
  "futures",
  "opentalk-roomserver-types",
- "opentalk-types-api-v1 0.47.1",
+ "opentalk-service-auth",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
  "thiserror",
  "tokio-util",
- "tower",
  "tracing",
  "utoipa",
 ]
@@ -1252,7 +1253,7 @@ version = "0.57.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41f29c5d3842862b39f55e24107952283eed3fa94dc8e78486c12f1805613324"
 dependencies = [
- "opentalk-types-api-v1 0.48.0",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-automod",
@@ -1295,23 +1296,6 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.47.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "766229671ffc72c9c4fe7061da35ef5637a648faf5fa855ca7d9aab013d126b7"
-dependencies = [
- "chrono",
- "chrono-tz",
- "derive_more",
- "opentalk-types-api-common",
- "opentalk-types-common",
- "serde",
- "serde_json",
- "serde_with",
- "url",
-]
-
-[[package]]
-name = "opentalk-types-api-v1"
 version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d3f227acf091e0979045a02961a6d6fbf384adeb916d6e291b877927dc5568"
@@ -1322,6 +1306,7 @@ dependencies = [
  "opentalk-types-api-common",
  "opentalk-types-common",
  "serde",
+ "serde_json",
  "serde_with",
  "url",
 ]
