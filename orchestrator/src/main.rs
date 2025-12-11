@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use axum::{
     Json, Router,
@@ -10,6 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{any, get},
 };
+use clap::Parser;
 use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
@@ -19,11 +22,13 @@ use transcription::TranscriptionInstance;
 use crate::{
     recorder::RecorderInstance,
     service_instance::{registration::handle_socket, runner::InstanceCollection},
+    settings::Settings,
 };
 
 mod recorder;
 mod roomserver;
 mod service_instance;
+mod settings;
 mod transcription;
 
 pub type Address = String;
@@ -89,24 +94,31 @@ impl AppState {
     }
 }
 
+#[derive(Debug, Clone, Parser)]
+struct Args {
+    #[clap(short, long, help = "Specify path to configuration file")]
+    pub(crate) config: Option<PathBuf>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     tracing_subscriber::fmt::init();
 
-    // TODO: provide this with a config
-    let orchestrator_keys = ApiKeys::new(vec![ApiKey::new("orchestrator", "secret")]);
-    let service_keys = ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]);
+    let settings = Settings::load(args.config.as_deref())?;
 
-    let state = AppState::new(service_keys);
+    let state = AppState::new(settings.services.keys);
 
     let app = Router::new()
         .route("/metrics", get(metrics))
         .route("/register", any(register))
-        .layer(orchestrator_keys.auth_middleware()?)
+        .layer(settings.http.api_keys.auth_middleware()?)
         .nest("/roomserver", rooms::routes())
         .with_state(state);
 
-    let address = "127.0.0.1:11222";
+    let address = format!("{}:{}", settings.http.address, settings.http.port);
+
     log::info!("Listening on address {address}");
     let listener = tokio::net::TcpListener::bind(address).await?;
     axum::serve(listener, app).await?;

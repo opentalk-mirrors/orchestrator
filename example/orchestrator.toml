@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+
+[http]
+# HTTP server settings
+
+# The IPv4/IPv6 address to bind the HTTP server to.
+# Binds to all interfaces by default:
+#address = "0.0.0.0"
+
+# All IPv6 interfaces:
+#address = "::"
+
+# Localhost only:
+#address = "127.0.0.1"
+#address = "::1"
+
+# The port to bind the HTTP server to (defaults to 11222)
+#port = 11222
+
+# The api keys for requests towards the orchestrator
+#
+# When setting the api keys through the environment, a string notation ("<key_id>:<key_secret>") must be used:
+#
+# OT_ORCHESTRATOR_HTTP__API_KEYS="orchestrator:secret,another_key:secret2"
+#
+api_keys = [{ id = "orchestrator", secret = "secret" }]
+
+[services]
+# Service settings
+
+# The api keys that will be used to authorize requests towards orchestrated services.
+#
+# When a service instance attempts to register at the orchestrator, the service needs to include its configured api key 
+# ids in the registration request. A service can only be accepted when the orchestrator knows at least one of the api 
+# keys that were sent by the service.
+#
+# When setting the api keys through the environment, a string notation ("<key_id>:<key_secret>") must be used:
+#  
+# OT_ORCHESTRATOR_SERVICES__KEYS="roomserver:secret,recorder:secret2"
+#
+# A single key:
+keys = [{ id = "roomserver", secret = "secret" }]
+
+# Multiple keys:
+#keys = [
+#    { id = "roomserver", secret = "secret" },
+#    { id = "recorder", secret = "secret" },
+#    { id = "transcription", secret = "super_secret" },
+#]
