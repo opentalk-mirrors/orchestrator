@@ -12,7 +12,7 @@ use tokio::{sync::mpsc, time::Instant};
 use crate::{config::OrchestratorConfig, signaling::Signaling};
 
 const METRIC_INTERVAL: Duration = Duration::from_secs(1);
-const RECONNECT_INTERVAL: Duration = Duration::from_secs(1);
+const RECONNECT_INTERVAL: Duration = Duration::from_secs(5);
 
 #[async_trait]
 pub trait StateProvider {
@@ -161,7 +161,7 @@ impl OrchestratorClient {
                             signaling.send::<Event>(event).await?;
                         },
                         None => {
-                            signaling.close().await?;
+                            signaling.close().await;
                             return Ok(SenderDropped)
                         },
                     }

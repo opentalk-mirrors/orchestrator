@@ -8,6 +8,24 @@ use opentalk_service_auth::ApiKey;
 use serde::{Deserialize, Deserializer, de};
 use url::{ParseError, Url};
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum UrlError {
+    #[error("Parsing error: {0}")]
+    Parse(#[from] ParseError),
+    #[error("Invalid scheme '{0}', scheme must be 'http' or 'https'")]
+    InvalidScheme(String),
+    #[error("Orchestrator url is not a base url: {0}")]
+    NotABaseUrl(#[from] BaseUrlError),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum BaseUrlError {
+    #[error("Base url cannot have a query: '{0}'")]
+    QueryNotSupported(String),
+    #[error("Invalid path '{0}', the path for the base url must end with a trailing slash")]
+    InvalidPath(String),
+}
+
 /// The configuration for the Orchestrator client
 #[derive(Debug, Clone, Deserialize)]
 pub struct OrchestratorConfig {
@@ -16,24 +34,6 @@ pub struct OrchestratorConfig {
 
     /// The key for the orchestrators API
     pub api_key: ApiKey,
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum UrlError {
-    #[error("Failed to parse url: {0}")]
-    Parse(#[from] ParseError),
-    #[error("invalid scheme '{0}', scheme must be 'http' or 'https'")]
-    InvalidScheme(String),
-    #[error("Orchestrator url is not a base url: {0}")]
-    NotABaseUrl(#[from] BaseUrlError),
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum BaseUrlError {
-    #[error("base url cannot have a query: '{0}'")]
-    QueryNotSupported(String),
-    #[error("invalid path '{0}', the path for the base url must end with a trailing slash")]
-    InvalidPath(String),
 }
 
 /// The base URL of the Orchestrator

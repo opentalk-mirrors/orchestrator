@@ -23,7 +23,6 @@ transcription-service = ["opentalk-orchestrator-shared/transcription-service"]
 
 [dependencies]
 anyhow.workspace = true
-bytes.workspace = true
 futures-util.workspace = true
 log.workspace = true
 serde = { workspace = true, features = ["derive"] }
