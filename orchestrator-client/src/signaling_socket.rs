@@ -6,8 +6,8 @@ use core::fmt::Debug;
 
 use anyhow::{Context, Result, bail};
 use futures_util::{SinkExt, StreamExt};
-use opentalk_orchestrator_shared::Register;
 use opentalk_service_auth::EncodingError;
+use serde::Deserialize;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
@@ -22,20 +22,13 @@ use tokio_tungstenite::{
     },
 };
 
-use crate::config::{OrchestratorConfig, UrlError};
+use crate::{
+    client::ClientError,
+    config::{OrchestratorConfig, UrlError},
+};
 
 const ORCHESTRATOR_PROTOCOL_HEADER: HeaderValue =
     HeaderValue::from_static("opentalk-orchestrator-json-v1.0");
-
-/// Error that can occur while connected to the orchestrator
-#[derive(Debug, thiserror::Error)]
-pub enum SignalingError {
-    #[error("Failed to build initial websocket request")]
-    BuildWsRequest(#[from] BuildWsRequestError),
-
-    #[error(transparent)]
-    Recoverable(#[from] anyhow::Error),
-}
 
 type WebSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -50,33 +43,22 @@ pub(crate) struct SignalingSocket {
 
 impl SignalingSocket {
     /// Establish a websocket connection with the configured orchestrator
-    pub(crate) async fn connect(
-        config: &OrchestratorConfig,
-        register: Register,
-    ) -> Result<Self, SignalingError> {
+    pub(crate) async fn connect(config: &OrchestratorConfig) -> Result<Self, ClientError> {
         let request = build_websocket_request(config)?;
 
         let (websocket, _) = tokio_tungstenite::connect_async(request)
             .await
             .context("Failed to establish connection with the orchestrator")?;
 
-        let mut this = Self {
+        Ok(Self {
             websocket: Some(websocket),
-        };
-
-        // TODO: split the connect and registration routine into separate functions
-        this.send(register).await.unwrap();
-
-        Ok(this)
+        })
     }
 
-    pub(crate) async fn recv(&mut self) -> Result<()> {
-        loop {
-            let payload = self.recv_websocket_message().await?;
+    pub(crate) async fn recv<T: for<'a> Deserialize<'a>>(&mut self) -> Result<T> {
+        let payload = self.recv_websocket_message().await?;
 
-            // TODO: implement proper response types
-            serde_json::from_str(&payload).context("Failed to parse websocket message")?
-        }
+        serde_json::from_str(&payload).context("Failed to parse websocket message")
     }
 
     /// Receive any text data from the websocket
