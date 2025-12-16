@@ -9,7 +9,7 @@ use opentalk_orchestrator_shared::{Event, Metrics, Register, RegisterData, Regis
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
 
-use crate::{config::OrchestratorConfig, signaling::Signaling};
+use crate::{config::OrchestratorConfig, signaling_socket::SignalingSocket};
 
 const METRIC_INTERVAL: Duration = Duration::from_secs(1);
 const RECONNECT_INTERVAL: Duration = Duration::from_secs(5);
@@ -101,7 +101,7 @@ impl OrchestratorClient {
                 self.config.url
             );
 
-            let signaling = match Signaling::connect(
+            let signaling = match SignalingSocket::connect(
                 &self.config,
                 Register {
                     register_data: RegisterData {
@@ -143,7 +143,7 @@ impl OrchestratorClient {
     async fn event_loop<P>(
         &mut self,
         state_provider: &mut P,
-        mut signaling: Signaling,
+        mut signaling: SignalingSocket,
     ) -> anyhow::Result<SenderDropped>
     where
         P: StateProvider + Send + 'static,

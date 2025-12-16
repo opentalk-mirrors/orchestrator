@@ -39,15 +39,16 @@ pub enum SignalingError {
 
 type WebSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
+/// Websocket wrapper for orchestrator signaling
 #[derive(Debug)]
-pub(crate) struct Signaling {
+pub(crate) struct SignalingSocket {
     /// The websocket connection to the orchestrator
     ///
     /// Is [None] when the connection has been closed
     websocket: Option<WebSocket>,
 }
 
-impl Signaling {
+impl SignalingSocket {
     /// Establish a websocket connection with the configured orchestrator
     pub(crate) async fn connect(
         config: &OrchestratorConfig,
@@ -155,7 +156,7 @@ impl Signaling {
     }
 }
 
-impl Drop for Signaling {
+impl Drop for SignalingSocket {
     fn drop(&mut self) {
         if let Some(mut websocket) = self.websocket.take() {
             tokio::spawn(async move {

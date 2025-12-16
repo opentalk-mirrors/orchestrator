@@ -4,7 +4,7 @@
 
 pub mod client;
 pub mod config;
-pub mod signaling;
+pub mod signaling_socket;
 
 pub use client::OrchestratorClient;
 pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
