@@ -29,6 +29,12 @@ pub enum RegisterResponse {
     Error(RegistrationError),
 }
 
+impl From<RegistrationError> for RegisterResponse {
+    fn from(error: RegistrationError) -> Self {
+        Self::Error(error)
+    }
+}
+
 /// Request to register at the orchestrator
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {

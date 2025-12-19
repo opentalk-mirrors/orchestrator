@@ -41,15 +41,16 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
     let Register {
         register_data,
         register_type,
-    } = match receive_register_message(&mut socket).await {
+    } = match receive_registration_message(&mut socket).await {
         Ok(msg) => msg,
         Err(err) => {
-            log::error!("failed to register new service: {err:?}");
+            log::error!("failed to register new service: {err}");
 
             if let Error::Registration(registration_error) = err {
-                send_registration_error(&mut socket, registration_error).await;
-                close_socket(socket, close_code::NORMAL, "registration failed").await;
+                send_registration_response(&mut socket, registration_error).await;
             }
+
+            close_socket(socket, close_code::NORMAL, "registration failed").await;
 
             return;
         }
@@ -75,7 +76,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
 }
 
 /// Receive and parse the [`Register`] message on the given socket
-async fn receive_register_message(socket: &mut WebSocket) -> Result<Register, Error> {
+async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register, Error> {
     let Ok(message) = timeout(REGISTRATION_TIMEOUT, socket.recv()).await else {
         log::error!("did not receive registration message for {REGISTRATION_TIMEOUT:?}");
         return Err(RegistrationError::Timeout.into());
@@ -121,12 +122,12 @@ impl AppState {
         {
             Ok(runner) => runner,
             Err(err) => {
-                log::error!("failed to register roomserver({address}): {err:?}");
+                log::error!("failed to register roomserver ({address}): {err:?}");
                 return;
             }
         };
 
-        log::info!("successfully registered roomserver({address})");
+        log::info!("successfully registered roomserver ({address})");
 
         match runner.run().await {
             Ok(()) => {
@@ -153,10 +154,12 @@ impl AppState {
             .await
         {
             let error_msg = registration_error.to_string();
-            send_registration_error(&mut socket, registration_error).await;
+            send_registration_response(&mut socket, registration_error).await;
             close_socket(socket, close_code::NORMAL, "registration failed").await;
             bail!(error_msg);
         }
+
+        send_registration_response(&mut socket, RegisterResponse::Success).await;
 
         Ok(InstanceRunner::new(socket, address, instances))
     }
@@ -190,22 +193,22 @@ impl AppState {
     }
 }
 
-async fn send_registration_error(socket: &mut WebSocket, error: RegistrationError) {
-    match serde_json::to_string(&RegisterResponse::Error(error)) {
+async fn send_registration_response(socket: &mut WebSocket, response: impl Into<RegisterResponse>) {
+    let response = response.into();
+
+    match serde_json::to_string(&response) {
         Ok(error_message) => {
             if let Err(err) = socket.send(Message::Text(error_message.into())).await {
-                log::error!("failed to send registration error response: {err:?} ")
+                log::error!("failed to send registration response: {err} ")
             }
         }
         Err(err) => {
-            log::error!("failed to serialize registration response: {err:?}");
+            log::error!("failed to serialize registration response: {err}");
         }
     };
 }
 
 async fn close_socket<S: AsRef<str>>(mut socket: WebSocket, code: u16, reason: S) {
-    const SOCKET_CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
-
     if let Err(err) = socket
         .send(Message::Close(Some(CloseFrame {
             code,
@@ -213,23 +216,6 @@ async fn close_socket<S: AsRef<str>>(mut socket: WebSocket, code: u16, reason: S
         })))
         .await
     {
-        log::debug!("Failed to close websocket connection: {err:?}");
-        return;
+        log::debug!("Failed to close websocket connection: {err}");
     };
-
-    // Wait a few seconds for the websocket close response
-    tokio::spawn(async move {
-        let mut timeout = std::pin::pin!(tokio::time::sleep(SOCKET_CLOSE_TIMEOUT));
-
-        loop {
-            tokio::select! {
-                _ = &mut timeout => {
-                    return;
-                },
-                Some(Ok(msg)) = socket.recv() => {
-                    if let Message::Close(_) = msg { return }
-                }
-            }
-        }
-    });
 }
