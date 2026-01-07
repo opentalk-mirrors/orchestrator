@@ -4,15 +4,30 @@
 
 use std::time::Duration;
 
+use anyhow::{Chain, Context, Result};
 use async_trait::async_trait;
-use opentalk_orchestrator_shared::{Event, Metrics, Register, RegisterData, RegisterType};
+use opentalk_orchestrator_shared::{
+    Event, Metrics, Register, RegisterData, RegisterResponse, RegisterType,
+};
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
 
-use crate::{config::OrchestratorConfig, signaling::Signaling};
+use crate::{
+    config::OrchestratorConfig,
+    signaling_socket::{BuildWsRequestError, SignalingSocket},
+};
 
 const METRIC_INTERVAL: Duration = Duration::from_secs(1);
-const RECONNECT_INTERVAL: Duration = Duration::from_secs(1);
+const RECONNECT_INTERVAL: Duration = Duration::from_secs(5);
+
+#[derive(Debug, thiserror::Error)]
+pub enum ClientError {
+    #[error("Failed to build initial websocket request")]
+    BuildWsRequest(#[from] BuildWsRequestError),
+
+    #[error(transparent)]
+    Recoverable(#[from] anyhow::Error),
+}
 
 #[async_trait]
 pub trait StateProvider {
@@ -20,11 +35,13 @@ pub trait StateProvider {
     async fn metrics(&self) -> Metrics;
 }
 
-/// The client to connect to the orchestrator service
+/// The client to connect to the orchestrator
 pub struct OrchestratorClient {
     /// List of key ids that can be used to authorize requests to implementing service
     key_ids: Vec<ApiKeyId>,
+    /// The orchestrator configuration
     config: OrchestratorConfig,
+    /// Receiver for events that shall be forwarded to the orchestrator
     event_receiver: mpsc::Receiver<Event>,
 }
 
@@ -62,117 +79,213 @@ impl OrchestratorClient {
         )
     }
 
-    /// Connect to the given orchestrator address to continuously sync service metrics
+    /// Connect to the given orchestrator address and continuously synchronize service metrics
     ///
     /// Once connected, the client task will send an initial dump of available metrics. While
     /// connected, the metrics are sent in a fixed interval.
     ///
-    /// When disconnected from the orchestrator, the underlying task will indefinitely attempt to
-    /// reconnect every few seconds.
+    /// The client will indefinitely attempt to reconnect to the orchestrator when a recoverable
+    /// error is encountered (E.g. network failure).
     ///
-    /// The client exits gracefully when the returned sender is dropped.
-    pub fn connect<P>(self, client_address: String, state_provider: P)
+    /// Returns with [Ok] when the [`OrchestratorHandle`] is dropped or the shutdown_signal is
+    /// received. Returns with [Err] when the encountered error is deemed to be non-recoverable
+    /// (E.g. configuration error).
+    pub async fn run<P>(
+        mut self,
+        client_address: String,
+        mut state_provider: P,
+        shutdown_signal: impl Future<Output = ()>,
+    ) -> Result<(), anyhow::Error>
     where
         P: StateProvider + Send + 'static,
     {
-        tokio::spawn(self.run(client_address, state_provider));
-    }
+        tokio::pin!(shutdown_signal);
 
-    /// Run the reconnect and event loop until the associated client sender is dropped
-    async fn run<P>(mut self, client_address: String, mut state_provider: P)
-    where
-        P: StateProvider + Send + 'static,
-    {
+        log::info!("Connecting to orchestrator at {} ...", self.config.url);
         loop {
-            // Clear the channel to avoid pushing outdated events when reconnected
-            loop {
-                match self.event_receiver.try_recv() {
-                    Ok(_) => continue,
-                    Err(mpsc::error::TryRecvError::Disconnected) => {
-                        log::debug!("sender dropped, exiting connect task");
-                        return;
-                    }
-                    Err(mpsc::error::TryRecvError::Empty) => break,
-                }
-            }
-
-            log::info!(
-                "trying to connect to orchestrator at {}...",
-                self.config.url
-            );
-
-            let signaling = match Signaling::connect(
-                &self.config,
-                Register {
-                    register_data: RegisterData {
-                        address: client_address.clone(),
-                        api_key_ids: self.key_ids.clone(),
-                        metrics: state_provider.metrics().await,
-                    },
-                    register_type: state_provider.register_type().await,
-                },
-            )
-            .await
-            {
-                Ok(signaling) => signaling,
-                Err(err) => {
-                    log::error!(
-                        "failed to connect to orchestrator, retrying in {RECONNECT_INTERVAL:?}: {err:?}"
-                    );
-                    tokio::time::sleep(RECONNECT_INTERVAL).await;
-                    continue;
-                }
+            let Err(error) = self
+                .inner_run(&client_address, &mut state_provider, &mut shutdown_signal)
+                .await
+            else {
+                // Gracefully exiting
+                return Ok(());
             };
 
-            log::info!("connection to orchestrator established");
+            match error {
+                ClientError::Recoverable(recoverable_error) => {
+                    log::warn!(
+                        "{recoverable_error}, retrying in {RECONNECT_INTERVAL:?}\n{}",
+                        ErrorCauses::from(&recoverable_error),
+                    );
 
-            match self.event_loop(&mut state_provider, signaling).await {
-                Ok(SenderDropped) => {
-                    log::debug!("sender dropped, disconnecting from orchestrator");
-                    return;
+                    tokio::select! {
+                        () = tokio::time::sleep(RECONNECT_INTERVAL) => {
+                            continue;
+                        },
+                        () =  &mut shutdown_signal => {
+                            return Ok(());
+                        }
+                    }
                 }
-                Err(e) => {
-                    log::error!("disconnected from orchestrator: {e}");
-                    continue;
+                critical => {
+                    return Err(critical.into());
                 }
             }
         }
     }
 
-    /// Forward the clients events to the orchestrator
+    async fn inner_run<P>(
+        &mut self,
+        client_address: &str,
+        state_provider: &mut P,
+        shutdown_signal: impl Future<Output = ()>,
+    ) -> Result<(), ClientError>
+    where
+        P: StateProvider + Send + 'static,
+    {
+        tokio::pin!(shutdown_signal);
+
+        // Clear the channel to avoid pushing outdated events when reconnected
+        loop {
+            match self.event_receiver.try_recv() {
+                Ok(_) => continue,
+                Err(mpsc::error::TryRecvError::Disconnected) => {
+                    log::debug!("client handle was dropped");
+                    return Ok(());
+                }
+                Err(mpsc::error::TryRecvError::Empty) => break,
+            }
+        }
+
+        let mut socket = tokio::select! {
+            socket = self.connect_and_register(client_address, state_provider) => {
+                socket?
+            }
+            () = &mut shutdown_signal => {
+                log::debug!("received shutdown signal");
+                return Ok(())
+            }
+        };
+
+        log::info!("Connected to orchestrator");
+
+        let result = self
+            .event_loop(state_provider, &mut socket, &mut shutdown_signal)
+            .await;
+
+        socket.close().await;
+
+        Ok(result?)
+    }
+
+    /// Continuously send client metrics and events to the orchestrator
     async fn event_loop<P>(
         &mut self,
         state_provider: &mut P,
-        mut signaling: Signaling,
-    ) -> anyhow::Result<SenderDropped>
+        socket: &mut SignalingSocket,
+        shutdown_signal: impl Future<Output = ()>,
+    ) -> Result<()>
     where
         P: StateProvider + Send + 'static,
     {
         let mut interval = tokio::time::interval_at(Instant::now(), METRIC_INTERVAL);
+        tokio::pin!(shutdown_signal);
 
         loop {
             tokio::select! {
                 _ = interval.tick() => {
-                    signaling.send(state_provider.metrics().await).await?;
+                    socket.send(state_provider.metrics().await).await?;
                 }
                 data = self.event_receiver.recv() => {
                     match data {
                         Some(event) => {
-                            signaling.send::<Event>(event).await?;
+                            socket.send::<Event>(event).await?;
                         },
                         None => {
-                            signaling.close().await?;
-                            return Ok(SenderDropped)
+                            log::debug!("client handle was dropped");
+                            return Ok(())
                         },
                     }
                 }
-                result = signaling.recv() => {
+                () = &mut shutdown_signal => {
+                    log::debug!("received shutdown signal");
+                    return Ok(())
+                }
+                result = socket.recv() => {
                     let _: () = result?;
                 }
             }
         }
     }
+
+    async fn connect_and_register<P>(
+        &self,
+        client_address: &str,
+        state_provider: &P,
+    ) -> Result<SignalingSocket, ClientError>
+    where
+        P: StateProvider + Send + 'static,
+    {
+        let mut socket = SignalingSocket::connect(&self.config).await?;
+
+        self.register(&mut socket, client_address.into(), state_provider)
+            .await?;
+
+        Ok(socket)
+    }
+
+    /// Send a registration message to the orchestrator and wait for its response
+    async fn register<P>(
+        &self,
+        socket: &mut SignalingSocket,
+        client_address: String,
+        state_provider: &P,
+    ) -> Result<()>
+    where
+        P: StateProvider + Send + 'static,
+    {
+        let registration = Register {
+            register_data: RegisterData {
+                address: client_address,
+                api_key_ids: self.key_ids.clone(),
+                metrics: state_provider.metrics().await,
+            },
+            register_type: state_provider.register_type().await,
+        };
+
+        socket.send(registration).await?;
+
+        let registration_response = socket.recv::<RegisterResponse>().await?;
+
+        if let RegisterResponse::Error(err) = registration_response {
+            return Err(err).context("Failed to register at orchestrator");
+        }
+
+        Ok(())
+    }
 }
 
-/// Indicates that the clients sender got dropped
-struct SenderDropped;
+/// Formatting helper for the anyhow error chain
+struct ErrorCauses<'a>(Chain<'a>);
+
+impl<'a> From<&'a anyhow::Error> for ErrorCauses<'a> {
+    fn from(chain: &'a anyhow::Error) -> ErrorCauses<'a> {
+        Self(chain.chain())
+    }
+}
+
+impl std::fmt::Display for ErrorCauses<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Caused by:")?;
+
+        // skip the original error
+        let causes = self.0.clone().skip(1);
+
+        for (n, cause) in causes.enumerate() {
+            f.write_fmt(format_args!("\n{:>3}: ", n))?;
+            std::fmt::Display::fmt(cause, f)?;
+        }
+
+        Ok(())
+    }
+}

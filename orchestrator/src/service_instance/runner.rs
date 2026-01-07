@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow};
 use axum::extract::ws::Message;
 use opentalk_orchestrator_shared::Event;
 use tokio::{
@@ -18,6 +18,15 @@ const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Address, T>>>;
 
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error("Connection has been closed by the client")]
+    ClosedByClient,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
 /// The runner for a service instance
 pub(crate) struct InstanceRunner<T: ServiceInstance> {
     /// The websocket connection to the instance
@@ -26,7 +35,7 @@ pub(crate) struct InstanceRunner<T: ServiceInstance> {
     pub(crate) address: Address,
     /// A reference counter to the list of global service instances of kind `T`
     ///
-    /// When the runner exits, the associated service instance gets removed from this collection.
+    /// When a runner exits, the associated service instance gets removed from this collection.
     pub(crate) instances: InstanceCollection<T>,
 }
 
@@ -49,10 +58,17 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
         self.remove_associated_instance().await;
 
-        result
+        if let Err(e) = result {
+            match e {
+                Error::ClosedByClient => return Ok(()),
+                Error::Other(error) => return Err(error),
+            }
+        }
+
+        Ok(())
     }
 
-    async fn inner_run(&mut self) -> Result<()> {
+    async fn inner_run(&mut self) -> Result<(), Error> {
         let mut heartbeat =
             tokio::time::interval_at(Instant::now() + HEARTBEAT_TIMEOUT, HEARTBEAT_TIMEOUT);
 
@@ -74,38 +90,42 @@ impl<T: ServiceInstance> InstanceRunner<T> {
         &mut self,
         msg: Option<Result<Message, axum::Error>>,
         heartbeat: &mut Interval,
-    ) -> Result<()> {
-        let Some(msg) = msg.transpose().context("error on websocket connection")? else {
-            bail!("socket unexpectedly closed by client",)
-        };
+    ) -> Result<(), Error> {
+        let msg = msg
+            .context("socket unexpectedly closed by client")?
+            .context("error on websocket connection")?;
 
         let event: Event = match msg {
-            Message::Ping(bytes) => {
-                self.socket.send(Message::Pong(bytes)).await?;
-                return Ok(());
-            }
-            Message::Pong(_bytes) => return Ok(()),
             Message::Close(close_frame) => {
                 log::debug!(
-                    "received close frame, close the websocket connection to {}",
+                    "received close message {close_frame:?} for websocket connection ({})",
                     self.address
                 );
-                self.socket.send(Message::Close(close_frame)).await?;
+                return Err(Error::ClosedByClient);
+            }
+            Message::Text(utf8_bytes) => {
+                serde_json::from_str(utf8_bytes.as_str()).with_context(|| {
+                    format!("failed to parse message for connection '{}'", self.address)
+                })?
+            }
+            Message::Binary(bytes) => serde_json::from_slice(bytes.iter().as_slice())
+                .with_context(|| {
+                    format!("failed parse to message for connection '{}'", self.address)
+                })?,
+
+            _ => {
                 return Ok(());
             }
-            Message::Text(utf8_bytes) => serde_json::from_str(utf8_bytes.as_str())
-                .with_context(|| format!("parse message for connection '{}'", self.address))?,
-            Message::Binary(bytes) => serde_json::from_slice(bytes.iter().as_slice())
-                .with_context(|| format!("parse message for connection '{}'", self.address))?,
         };
 
         let mut guard = self.instances.lock().await;
 
         let Some(instance) = guard.get_mut(&self.address) else {
-            bail!(
+            return Err(anyhow!(
                 "Failed to get service instance for connected service ({})",
                 self.address
             )
+            .into());
         };
 
         match event {
@@ -121,14 +141,19 @@ impl<T: ServiceInstance> InstanceRunner<T> {
                 instance.instance_data_mut().metrics = metrics;
             }
             event => {
-                let Ok(service_event) = event.try_into() else {
-                    // event mismatch
-                    todo!()
+                let service_event = match event.try_into() {
+                    Ok(event) => event,
+                    Err(_) => {
+                        return Err(
+                            anyhow!("Received unexpected event variant from service").into()
+                        );
+                    }
                 };
 
                 instance.handle_event(service_event).await
             }
         }
+
         Ok(())
     }
 
