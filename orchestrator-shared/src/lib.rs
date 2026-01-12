@@ -4,6 +4,7 @@
 
 use opentalk_service_auth::ApiKeyId;
 use serde::{Deserialize, Serialize};
+pub use url::Url;
 
 use crate::error::RegistrationError;
 #[cfg(feature = "recording-service")]
@@ -43,10 +44,10 @@ pub struct Register {
     pub register_type: RegisterType,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterData {
     /// The address of the service
-    pub address: String,
+    pub client_address: Url,
     /// A list of api key ids to that authorize requests to the service
     pub api_key_ids: Vec<ApiKeyId>,
     /// The initial metrics

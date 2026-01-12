@@ -11,6 +11,7 @@ use opentalk_orchestrator_shared::{
 };
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
+pub use url::Url;
 
 use crate::{
     config::OrchestratorConfig,
@@ -92,7 +93,7 @@ impl OrchestratorClient {
     /// (E.g. configuration error).
     pub async fn run<P>(
         mut self,
-        client_address: String,
+        client_address: Url,
         mut state_provider: P,
         shutdown_signal: impl Future<Output = ()>,
     ) -> Result<(), anyhow::Error>
@@ -104,7 +105,11 @@ impl OrchestratorClient {
         log::info!("Connecting to orchestrator at {} ...", self.config.url);
         loop {
             let Err(error) = self
-                .inner_run(&client_address, &mut state_provider, &mut shutdown_signal)
+                .inner_run(
+                    client_address.clone(),
+                    &mut state_provider,
+                    &mut shutdown_signal,
+                )
                 .await
             else {
                 // Gracefully exiting
@@ -136,7 +141,7 @@ impl OrchestratorClient {
 
     async fn inner_run<P>(
         &mut self,
-        client_address: &str,
+        client_address: Url,
         state_provider: &mut P,
         shutdown_signal: impl Future<Output = ()>,
     ) -> Result<(), ClientError>
@@ -220,7 +225,7 @@ impl OrchestratorClient {
 
     async fn connect_and_register<P>(
         &self,
-        client_address: &str,
+        client_address: Url,
         state_provider: &P,
     ) -> Result<SignalingSocket, ClientError>
     where
@@ -228,7 +233,7 @@ impl OrchestratorClient {
     {
         let mut socket = SignalingSocket::connect(&self.config).await?;
 
-        self.register(&mut socket, client_address.into(), state_provider)
+        self.register(&mut socket, client_address, state_provider)
             .await?;
 
         Ok(socket)
@@ -238,7 +243,7 @@ impl OrchestratorClient {
     async fn register<P>(
         &self,
         socket: &mut SignalingSocket,
-        client_address: String,
+        client_address: Url,
         state_provider: &P,
     ) -> Result<()>
     where
@@ -246,7 +251,7 @@ impl OrchestratorClient {
     {
         let registration = Register {
             register_data: RegisterData {
-                address: client_address,
+                client_address,
                 api_key_ids: self.key_ids.clone(),
                 metrics: state_provider.metrics().await,
             },

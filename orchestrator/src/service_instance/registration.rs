@@ -56,7 +56,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
         }
     };
 
-    let address = register_data.address.clone();
+    let address = register_data.client_address.clone();
 
     log::debug!("Received registration request from {address}");
 
@@ -109,7 +109,7 @@ impl AppState {
         register: RegisterData,
         rooms: HashSet<RoomId>,
     ) {
-        let address = register.address.clone();
+        let address = register.client_address.clone();
 
         let runner = match self
             .create_instance_runner(
@@ -147,7 +147,7 @@ impl AppState {
         managed_data: HashSet<T::ManagedResource>,
         instances: InstanceCollection<T>,
     ) -> Result<InstanceRunner<T>> {
-        let address = register.address.clone();
+        let address = register.client_address.clone();
 
         if let Err(registration_error) = self
             .register_instance(register, managed_data, Arc::clone(&instances))
@@ -177,7 +177,7 @@ impl AppState {
 
         let mut guard = instances.lock().await;
 
-        let instance = match guard.entry(register.address.clone()) {
+        let instance = match guard.entry(register.client_address.clone()) {
             Entry::Occupied(_) => {
                 return Err(RegistrationError::AddressAlreadyInUse);
             }

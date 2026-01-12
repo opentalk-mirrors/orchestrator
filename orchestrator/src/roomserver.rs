@@ -193,13 +193,14 @@ mod tests {
     use opentalk_orchestrator_shared::Metrics;
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_common::rooms::RoomId;
+    use url::Url;
 
     use crate::{AppState, service_instance::InstanceData};
 
     #[test_log::test(tokio::test)]
     async fn select_existing_room() {
-        let server_1 = "0.0.0.1".to_string();
-        let server_2 = "0.0.0.2".to_string();
+        let server_1 = Url::parse("http://0.0.0.1").unwrap();
+        let server_2 = Url::parse("http://0.0.0.2").unwrap();
 
         const ROOM_1: RoomId = RoomId::from_u128(1);
         const ROOM_2: RoomId = RoomId::from_u128(2);
