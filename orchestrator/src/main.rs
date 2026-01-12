@@ -114,7 +114,7 @@ async fn main() -> Result<()> {
         .route("/metrics", get(metrics))
         .route("/register", any(register))
         .layer(settings.http.api_keys.auth_middleware()?)
-        .nest("/roomserver", rooms::routes())
+        .nest("/roomserver/v1", rooms::routes())
         .with_state(state);
 
     let address = format!("{}:{}", settings.http.address, settings.http.port);
