@@ -1,3 +1,60 @@
 # OpenTalk Orchestrator
 
-🚧 TODO 🚧
+The Orchestrator manages scalable services in an OpenTalk deployment, similar to a loadbalancer. It proxies the internal
+web APIs of orchestrated services and forwards requests towards the appropriate instance.
+
+```ascii
+                                                    ┌───────────┐
+                                           ┌───────►│ Service A │
+                      ┌────────────────┐   │        └───────────┘
+┌────────────┐        │                ├───┘        ┌───────────┐
+│ Controller ├───────►│  Orchestrator  ├───────────►│ Service A │
+└────────────┘        │                ├───┐        └───────────┘
+                      └────────────────┘   │        ┌───────────┐
+                                           └───────►│ Service B │
+                                                    └───────────┘
+```
+
+## Service endpoints
+
+| Service       | Orchestrator endpoint |
+| ------------- | --------------------- |
+| Roomserver    | `/roomserver`         |
+| Recorder      | `todo`                |
+| Transcription | `todo`                |
+
+## How it works
+
+The orchestrator proxies the internal APIs of connected orchestrated services. For the API caller, the orchestrator
+appears to be a single instance of the proxied service.
+
+When a supported service is started and it has an orchestrator is configured, the service will attempt to register at
+the orchestrator. Once registered, the service sends an initial dump of its metrics (current load, managed resources,
+etc.) to the orchestrator.
+
+The orchestrator maintains this list of registered services and continuously receives metrics from each of them. Based
+on the managed resources of a service, the orchestrator can decide to which instance a request must be forwarded.
+
+### Roomserver Example
+
+Assume that a client wants to join room `28be42...`. The client sends its `/room/28be42.../start` request to the
+controller. The controller checks the users permissions and requests a room token from its configured roomserver. In an
+orchestrator deployment, the configured roomserver of the controller would be the `/roomserver` endpoint of the
+orchestrator.
+
+The orchestrator receives the request and can now determine which roomserver this request should be forwarded to. If
+room `28be42...` is already managed by one of the roomservers, the request is forwarded to that roomserver instance.
+If none of the roomservers manage room `28be42...`, the instance with the lowest load is selected to host the new room.
+
+## Configuration
+
+Each orchestrated service has an `orchestrator` section in their respective config that must be configured to point to
+the orchestrator of that deployment.
+
+The orchestrator must know the API keys of its orchestrated services. All API keys of deployed services must be added to
+the `services.keys` field in the orchestrator configuration file. A service with an unknown API key id will have its
+registration declined.
+
+When configuring the controller, each service configuration should point to the respective orchestrator endpoint of that
+service. For example, use orchestrators roomserver url (`<orchestrator_url>/roomserver`) as url for the controllers
+roomserver configuration.
