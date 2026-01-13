@@ -31,8 +31,6 @@ mod service_instance;
 mod settings;
 mod transcription;
 
-pub type Address = String;
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ServiceType {
     Recorder,

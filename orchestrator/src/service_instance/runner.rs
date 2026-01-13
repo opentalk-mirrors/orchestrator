@@ -11,12 +11,13 @@ use tokio::{
     sync::Mutex,
     time::{Instant, Interval},
 };
+use url::Url;
 
-use crate::{Address, service_instance::ServiceInstance};
+use crate::service_instance::ServiceInstance;
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 
-pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Address, T>>>;
+pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Url, T>>>;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -32,7 +33,7 @@ pub(crate) struct InstanceRunner<T: ServiceInstance> {
     /// The websocket connection to the instance
     pub(crate) socket: axum::extract::ws::WebSocket,
     /// The HTTP address of the instance
-    pub(crate) address: Address,
+    pub(crate) client_address: Url,
     /// A reference counter to the list of global service instances of kind `T`
     ///
     /// When a runner exits, the associated service instance gets removed from this collection.
@@ -42,12 +43,12 @@ pub(crate) struct InstanceRunner<T: ServiceInstance> {
 impl<T: ServiceInstance> InstanceRunner<T> {
     pub(crate) fn new(
         socket: axum::extract::ws::WebSocket,
-        address: String,
+        client_address: Url,
         instances: InstanceCollection<T>,
     ) -> Self {
         Self {
             socket,
-            address,
+            client_address,
             instances,
         }
     }
@@ -99,18 +100,24 @@ impl<T: ServiceInstance> InstanceRunner<T> {
             Message::Close(close_frame) => {
                 log::debug!(
                     "received close message {close_frame:?} for websocket connection ({})",
-                    self.address
+                    self.client_address
                 );
                 return Err(Error::ClosedByClient);
             }
             Message::Text(utf8_bytes) => {
                 serde_json::from_str(utf8_bytes.as_str()).with_context(|| {
-                    format!("failed to parse message for connection '{}'", self.address)
+                    format!(
+                        "failed to parse message for connection '{}'",
+                        self.client_address
+                    )
                 })?
             }
             Message::Binary(bytes) => serde_json::from_slice(bytes.iter().as_slice())
                 .with_context(|| {
-                    format!("failed parse to message for connection '{}'", self.address)
+                    format!(
+                        "failed parse to message for connection '{}'",
+                        self.client_address
+                    )
                 })?,
 
             _ => {
@@ -120,10 +127,10 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
         let mut guard = self.instances.lock().await;
 
-        let Some(instance) = guard.get_mut(&self.address) else {
+        let Some(instance) = guard.get_mut(&self.client_address) else {
             return Err(anyhow!(
                 "Failed to get service instance for connected service ({})",
-                self.address
+                self.client_address
             )
             .into());
         };
@@ -132,10 +139,10 @@ impl<T: ServiceInstance> InstanceRunner<T> {
             Event::Metrics(metrics) => {
                 log::trace!(
                     "set metrics '{metrics:?}' for connection '{}'",
-                    self.address
+                    self.client_address
                 );
 
-                log::trace!("reset heartbeat for connection '{}'", self.address);
+                log::trace!("reset heartbeat for connection '{}'", self.client_address);
                 heartbeat.reset();
 
                 instance.instance_data_mut().metrics = metrics;
@@ -159,6 +166,6 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
     /// Remove the associated service instance from the global [`InstanceCollection`]
     async fn remove_associated_instance(&mut self) {
-        self.instances.lock().await.remove(&self.address);
+        self.instances.lock().await.remove(&self.client_address);
     }
 }

@@ -6,16 +6,17 @@ use opentalk_service_auth::{ApiKeyId, EncodingError};
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use rand::prelude::IteratorRandom;
+use url::Url;
 
 use crate::{
-    Address, AppState,
+    AppState,
     service_instance::{ServiceInstance, runner::InstanceCollection},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SelectedInstance {
     /// The address of the selected instance
-    pub(crate) address: Address,
+    pub(crate) address: Url,
     /// The authorization header for request towards the instance
     pub(crate) auth_header: String,
 }
