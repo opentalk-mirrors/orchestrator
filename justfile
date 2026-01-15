@@ -57,13 +57,13 @@ update-changelog VERSION: _check_git_cliff
 # Create the release commit
 commit-release: _check_yq
     #!/usr/bin/env bash
-    current_version=$(cat Cargo.toml | yq -ptoml .package.version)
+    current_version=$(cat Cargo.toml | yq -ptoml .workspace.package.version)
     git commit -a -m "chore(release): prepare release $current_version"
     git log HEAD^..HEAD
 
 # Create the release tag
 tag-release: _check_yq
     #!/usr/bin/env bash
-    current_version=$(cat Cargo.toml | yq -ptoml .package.version)
+    current_version=$(cat Cargo.toml | yq -ptoml .workspace.package.version)
     git tag -s -m "v$current_version" "v$current_version"
     git show --no-patch "v$current_version"
