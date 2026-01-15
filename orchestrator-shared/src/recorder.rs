@@ -16,8 +16,8 @@ pub struct RegisterRecorder {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash, Eq)]
 pub struct RecorderResource {
-    room_id: RoomId,
-    breakout_id: u64,
+    pub room_id: RoomId,
+    pub breakout_id: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

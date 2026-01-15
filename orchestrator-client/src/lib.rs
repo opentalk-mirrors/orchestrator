@@ -10,7 +10,7 @@ pub use client::OrchestratorClient;
 pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
 pub use opentalk_orchestrator_shared::{Metrics, RegisterType};
 #[cfg(feature = "recording-service")]
-pub use opentalk_orchestrator_shared::{RecorderEvent, RegisterRecorder};
+pub use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource, RegisterRecorder};
 #[cfg(feature = "roomserver-service")]
 pub use opentalk_orchestrator_shared::{RegisterRoomServer, RoomServerEvent};
 #[cfg(feature = "transcription-service")]
