@@ -40,7 +40,7 @@ set-version VERSION: _check_cargo_set_version _check_yq
     # Set the version number for all packages in the workspace
     cargo set-version --workspace {{ VERSION }}
     # Regenerate the lockfile
-    cargo check
+    cargo check --all-features
     
 # Update the changelog
 update-changelog VERSION: _check_git_cliff
