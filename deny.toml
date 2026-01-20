@@ -73,6 +73,9 @@ exceptions = [
   ], name = "opentalk-orchestrator-client" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-orchestrator-shared" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
