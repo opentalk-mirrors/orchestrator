@@ -11,7 +11,7 @@ authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
 homepage = "https://opentalk.eu/"
 repository = "https://gitlab.opencode.de/opentalk/orchestrator"
-version = "0.1.0"
+version = "0.1.1"
 license = "EUPL-1.2"
 
 [workspace.dependencies]
