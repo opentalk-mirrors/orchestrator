@@ -72,6 +72,9 @@ exceptions = [
   ], name = "opentalk-orchestrator-shared" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-recorder-web-api" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types" },
   { allow = [
     "EUPL-1.2",
@@ -82,6 +85,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-api-internal" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-v1" },

@@ -167,6 +167,7 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
         .route("/register", any(register))
         .layer(settings.http.api_keys.auth_middleware()?)
         .nest("/roomserver/v1", roomserver::routes())
+        .nest("/recording", opentalk_recorder_web_api::v1::routes())
         .with_state(state)
         .fallback(not_found_handler)
         .into_make_service_with_connect_info::<SocketAddr>();
