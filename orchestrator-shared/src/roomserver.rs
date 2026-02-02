@@ -15,7 +15,6 @@ pub struct RegisterRoomServer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
 pub enum RoomServerEvent {
     RemoveRoom(RoomId),
 }
