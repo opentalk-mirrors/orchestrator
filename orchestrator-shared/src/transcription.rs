@@ -15,7 +15,6 @@ pub struct RegisterTranscription {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
 pub enum TranscriptionEvent {
     RemoveRoom(RoomId),
 }

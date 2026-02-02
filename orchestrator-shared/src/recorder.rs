@@ -21,7 +21,6 @@ pub struct RecorderResource {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
 pub enum RecorderEvent {
     RemoveRoom(RoomId),
 }
