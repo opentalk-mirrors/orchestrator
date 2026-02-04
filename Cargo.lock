@@ -1535,7 +1535,7 @@ dependencies = [
  "futures",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.51.3",
  "opentalk-types-common",
  "thiserror 2.0.18",
  "tokio-util",
@@ -1561,11 +1561,11 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.60.2"
+version = "0.61.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a050868bcdd8ce02c2aa5c7057ebe13258638922bcb78f2d53a6fc400dbd1c"
+checksum = "66f06919b38f1f6d383a433881c6fc36b155b9e0c8e06bf46e4a52be2da183e0"
 dependencies = [
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.52.1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-automod",
@@ -1624,10 +1624,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-types-common"
-version = "0.42.0"
+name = "opentalk-types-api-v1"
+version = "0.52.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ff78e229f3abbdc940f9d2c10081ca90d2e38fb3f55ace83347889fd2caedb1"
+checksum = "fe286a51669faebc7e5328223be33bbf203bef2d85184bc1b0bfab312707944a"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "derive_more",
+ "opentalk-types-api-common",
+ "opentalk-types-common",
+ "serde",
+ "serde_with",
+ "url",
+]
+
+[[package]]
+name = "opentalk-types-common"
+version = "0.42.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "539cd84a0339c9ebd591dca6cd20b07c79cb9ed69ef15734579ec0d7ee709d85"
 dependencies = [
  "chrono",
  "chrono-tz",
