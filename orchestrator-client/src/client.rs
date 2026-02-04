@@ -32,8 +32,8 @@ pub enum ClientError {
 
 #[async_trait]
 pub trait StateProvider {
-    async fn register_type(&self) -> RegisterType;
-    async fn metrics(&self) -> Metrics;
+    async fn register_type(&mut self) -> RegisterType;
+    async fn metrics(&mut self) -> Metrics;
 }
 
 /// The client to connect to the orchestrator
@@ -226,7 +226,7 @@ impl OrchestratorClient {
     async fn connect_and_register<P>(
         &self,
         client_address: Url,
-        state_provider: &P,
+        state_provider: &mut P,
     ) -> Result<SignalingSocket, ClientError>
     where
         P: StateProvider + Send + 'static,
@@ -244,7 +244,7 @@ impl OrchestratorClient {
         &self,
         socket: &mut SignalingSocket,
         client_address: Url,
-        state_provider: &P,
+        state_provider: &mut P,
     ) -> Result<()>
     where
         P: StateProvider + Send + 'static,
