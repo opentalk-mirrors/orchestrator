@@ -56,7 +56,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -67,7 +67,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -579,7 +579,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1419,7 +1419,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1483,7 +1483,7 @@ dependencies = [
  "futures-util",
  "log",
  "opentalk-orchestrator-shared",
- "opentalk-service-auth",
+ "opentalk-service-auth 0.2.0",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1496,7 +1496,7 @@ dependencies = [
 name = "opentalk-orchestrator-shared"
 version = "0.2.0"
 dependencies = [
- "opentalk-service-auth",
+ "opentalk-service-auth 0.2.0",
  "opentalk-types",
  "serde",
  "thiserror 2.0.18",
@@ -1534,7 +1534,7 @@ dependencies = [
  "bytes",
  "futures",
  "opentalk-roomserver-types",
- "opentalk-service-auth",
+ "opentalk-service-auth 0.1.3",
  "opentalk-types-api-v1 0.51.3",
  "opentalk-types-common",
  "thiserror 2.0.18",
@@ -1548,6 +1548,22 @@ name = "opentalk-service-auth"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c25e60fe5f8db778320b03dbdf68237fea56ffa6f575537f461e62a71d3c8682"
+dependencies = [
+ "axum",
+ "futures",
+ "jsonwebtoken",
+ "opentalk-types-api-common",
+ "rand",
+ "serde",
+ "thiserror 2.0.18",
+ "tower",
+]
+
+[[package]]
+name = "opentalk-service-auth"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "726bcee48a54bc4acfe2a0d986197ba744376928f9aa0265d13823a04c67cc65"
 dependencies = [
  "axum",
  "futures",
@@ -1958,7 +1974,7 @@ dependencies = [
  "opentalk-orchestrator-shared",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
- "opentalk-service-auth",
+ "opentalk-service-auth 0.2.0",
  "opentalk-types-api-common",
  "opentalk-types-common",
  "rand",
@@ -2434,7 +2450,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3506,7 +3522,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
