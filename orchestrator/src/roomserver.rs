@@ -27,7 +27,7 @@ use crate::{
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct RoomserverInstance {
-    pub breakout_rooms: HashSet<RoomId>,
+    pub rooms: HashSet<RoomId>,
     pub data: InstanceData,
 }
 
@@ -38,17 +38,17 @@ impl ServiceInstance for RoomserverInstance {
 
     fn new(resources: HashSet<Self::ManagedResource>) -> Self {
         Self {
-            breakout_rooms: resources,
+            rooms: resources,
             data: InstanceData::default(),
         }
     }
 
     fn manages(&self, resource: &Self::ManagedResource) -> bool {
-        self.breakout_rooms.contains(resource)
+        self.rooms.contains(resource)
     }
 
     fn add_managed_resource(&mut self, managed_data: Self::ManagedResource) {
-        self.breakout_rooms.insert(managed_data);
+        self.rooms.insert(managed_data);
     }
 
     fn instance_data(&self) -> &InstanceData {
@@ -62,8 +62,7 @@ impl ServiceInstance for RoomserverInstance {
     async fn handle_event(&mut self, event: Self::Event) {
         match event {
             RoomServerEvent::RemoveRoom(remove_room_id) => {
-                self.breakout_rooms
-                    .retain(|room_id| room_id != &remove_room_id);
+                self.rooms.retain(|room_id| room_id != &remove_room_id);
             }
         }
     }
@@ -217,7 +216,7 @@ mod tests {
         roomservers.insert(
             server_1.clone(),
             super::RoomserverInstance {
-                breakout_rooms: rooms,
+                rooms,
                 data: InstanceData {
                     metrics: Metrics {
                         load: 80,
@@ -236,7 +235,7 @@ mod tests {
         roomservers.insert(
             server_2.clone(),
             super::RoomserverInstance {
-                breakout_rooms: rooms,
+                rooms,
                 data: InstanceData {
                     metrics: Metrics {
                         load: 20,
