@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 
-use opentalk_types::common::rooms::RoomId;
+use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 
 use crate::Event;

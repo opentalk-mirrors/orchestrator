@@ -22,7 +22,7 @@ roomserver-service = []
 transcription-service = []
 
 [dependencies]
-opentalk-types = { workspace = true, features = ["common", "serde"] }
+opentalk-types-common = { workspace = true, features = ["serde"] }
 opentalk-service-auth.workspace = true
 serde.workspace = true
 thiserror.workspace = true
