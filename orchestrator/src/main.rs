@@ -17,6 +17,13 @@ use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
 use roomserver::RoomserverInstance;
+use tokio::{
+    select,
+    signal::{
+        self,
+        unix::{SignalKind, signal},
+    },
+};
 use transcription::TranscriptionInstance;
 
 use crate::{
@@ -98,6 +105,14 @@ struct Args {
     pub(crate) config: Option<PathBuf>,
 }
 
+async fn shutdown_signal() {
+    let mut sig_term = signal(SignalKind::terminate()).expect("cannot setup SIGTERM handler");
+    select! {
+        _ = signal::ctrl_c() => { log::info!("received Ctrl-C"); }
+        _ = sig_term.recv() => { log::info!("received SIGTERM"); }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
@@ -119,7 +134,10 @@ async fn main() -> Result<()> {
 
     log::info!("Listening on address {address}");
     let listener = tokio::net::TcpListener::bind(address).await?;
-    axum::serve(listener, app).await?;
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     Ok(())
 }

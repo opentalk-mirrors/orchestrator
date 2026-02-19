@@ -33,7 +33,12 @@ opentalk-orchestrator-shared = { workspace = true, features = [
   "roomserver-service",
   "transcription-service",
 ] }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "signal",
+] }
 tracing-subscriber.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
 thiserror.workspace = true
