@@ -5,7 +5,6 @@
 use opentalk_service_auth::{ApiKeyId, EncodingError};
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
-use rand::prelude::IteratorRandom;
 use url::Url;
 
 use crate::{
@@ -82,11 +81,12 @@ impl AppState {
             });
         }
 
-        let Some((address, instance)) = instances
+        let lowest_load_instance = instances
             .iter_mut()
             .filter(|(_, instance)| instance.instance_data().metrics.accepting_jobs)
-            .choose(&mut rand::rng())
-        else {
+            .min_by_key(|(_, instance)| instance.instance_data().metrics.load);
+
+        let Some((address, instance)) = lowest_load_instance else {
             return Err(InstanceError::NotAvailable);
         };
 
@@ -121,5 +121,170 @@ impl AppState {
         };
 
         Ok(jwt)
+    }
+}
+
+mod tests {
+    use std::collections::HashSet;
+
+    use opentalk_orchestrator_shared::Metrics;
+    use opentalk_service_auth::service::ApiKeys;
+
+    use super::*;
+    use crate::{roomserver::RoomserverInstance, service_instance::InstanceData};
+
+    fn roomserver_instance_with_load(load: u8) -> RoomserverInstance {
+        RoomserverInstance {
+            rooms: HashSet::default(),
+            data: InstanceData {
+                metrics: Metrics {
+                    load,
+                    accepting_jobs: true,
+                },
+                api_key_ids: vec!["roomserver".into()],
+            },
+        }
+    }
+    #[tokio::test]
+    async fn select_existing_instance() {
+        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+
+        let mut instances = app_state.roomserver_services.lock().await;
+
+        instances.insert(
+            "http://localhost:11333".parse().unwrap(),
+            RoomserverInstance {
+                rooms: [RoomId::nil()].into_iter().collect(),
+                data: InstanceData {
+                    metrics: Metrics {
+                        load: 50,
+                        accepting_jobs: true,
+                    },
+                    api_key_ids: vec!["roomserver".into()],
+                },
+            },
+        );
+
+        drop(instances);
+
+        let selected_instance = app_state
+            .select_roomserver(RoomId::from_u128(0))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            selected_instance.address,
+            "http://localhost:11333".parse().unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn select_lowest_load_instance() {
+        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let mut instances = app_state.roomserver_services.lock().await;
+
+        instances.insert(
+            "http://localhost:11333".parse().unwrap(),
+            roomserver_instance_with_load(70),
+        );
+
+        instances.insert(
+            "http://localhost:11334".parse().unwrap(),
+            roomserver_instance_with_load(30),
+        );
+
+        instances.insert(
+            "http://localhost:11335".parse().unwrap(),
+            roomserver_instance_with_load(50),
+        );
+
+        drop(instances);
+
+        let selected_instance = app_state.select_roomserver(RoomId::nil()).await.unwrap();
+
+        assert_eq!(
+            selected_instance.address,
+            "http://localhost:11334".parse().unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn select_instance_not_accepting_jobs() {
+        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let mut instances = app_state.roomserver_services.lock().await;
+
+        instances.insert(
+            "http://localhost:11333".parse().unwrap(),
+            RoomserverInstance {
+                rooms: HashSet::default(),
+                data: InstanceData {
+                    metrics: Metrics {
+                        load: 10,
+                        accepting_jobs: false,
+                    },
+                    api_key_ids: vec!["roomserver".into()],
+                },
+            },
+        );
+
+        instances.insert(
+            "http://localhost:11334".parse().unwrap(),
+            roomserver_instance_with_load(30),
+        );
+
+        instances.insert(
+            "http://localhost:11335".parse().unwrap(),
+            roomserver_instance_with_load(50),
+        );
+
+        drop(instances);
+
+        let selected_instance = app_state.select_roomserver(RoomId::nil()).await.unwrap();
+
+        assert_eq!(
+            selected_instance.address,
+            "http://localhost:11334".parse().unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn no_instance_available() {
+        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+
+        let selected_instance = app_state.select_roomserver(RoomId::nil()).await;
+
+        assert!(matches!(
+            selected_instance,
+            Err(InstanceError::NotAvailable)
+        ));
+    }
+
+    #[tokio::test]
+    async fn no_accepting_jobs_instances() {
+        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let mut instances = app_state.roomserver_services.lock().await;
+
+        instances.insert(
+            "http://localhost:11333".parse().unwrap(),
+            RoomserverInstance {
+                rooms: HashSet::default(),
+                data: InstanceData {
+                    metrics: Metrics {
+                        load: 80,
+                        accepting_jobs: false,
+                    },
+                    api_key_ids: vec!["roomserver".into()],
+                },
+            },
+        );
+
+        drop(instances);
+
+        let selected_instance = app_state.select_roomserver(RoomId::nil()).await;
+
+        assert!(matches!(
+            selected_instance,
+            Err(InstanceError::NotAvailable)
+        ));
     }
 }
