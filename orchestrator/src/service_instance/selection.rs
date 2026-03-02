@@ -124,6 +124,7 @@ impl AppState {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::collections::HashSet;
 
