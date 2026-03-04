@@ -6,8 +6,9 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::cli::metrics::MetricsArgs;
+use crate::cli::{health::HealthArgs, metrics::MetricsArgs};
 
+mod health;
 mod metrics;
 
 #[derive(Parser, Debug, Clone)]
@@ -36,6 +37,9 @@ pub struct Args {
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
 pub enum SubCommand {
+    /// Return the readiness state
+    Health(HealthArgs),
+
     /// The metrics of the orchestrator
     Metrics(MetricsArgs),
 }
@@ -45,6 +49,9 @@ pub async fn handle_subcommand(
     config: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     match subcommand {
+        SubCommand::Health(args) => {
+            health::health_check(config, args).await?;
+        }
         SubCommand::Metrics(args) => metrics::fetch_metrics(config, args).await?,
     }
 

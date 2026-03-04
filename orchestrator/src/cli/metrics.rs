@@ -56,10 +56,11 @@ pub async fn fetch_metrics(
     let client = reqwest::Client::new();
 
     let response = client
-        .get(url)
+        .get(url.clone())
         .bearer_auth(api_key.generate_jwt().context("Failed to generate jwt")?)
         .send()
-        .await?;
+        .await
+        .with_context(|| format!("Failed to send request HTTP request to {}", url))?;
 
     let status = response.status();
     let body = response

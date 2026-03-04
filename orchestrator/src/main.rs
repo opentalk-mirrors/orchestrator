@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     Json, Router,
     extract::{State, WebSocketUpgrade},
@@ -15,6 +15,7 @@ use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
 use roomserver::RoomserverInstance;
+use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     select,
     signal::{
@@ -27,7 +28,7 @@ use transcription::TranscriptionInstance;
 use crate::{
     recorder::RecorderInstance,
     service_instance::{registration::handle_socket, runner::InstanceCollection},
-    settings::Settings,
+    settings::{Settings, monitoring::Monitoring},
     tasks::{ShutdownReceiver, Tasks},
 };
 
@@ -121,7 +122,23 @@ async fn main() -> Result<()> {
         Ok(())
     });
 
-    tasks.spawn("webserver", |shutdown| run_webserver(settings, shutdown));
+    let settings_clone = settings.clone();
+    tasks.spawn("webserver", |shutdown| {
+        run_webserver(settings_clone, shutdown)
+    });
+
+    match settings.monitoring {
+        Some(monitoring) => {
+            tasks.spawn("service_probe", |shutdown| {
+                start_service_probe(monitoring, shutdown)
+            });
+        }
+        None => {
+            log::info!(
+                "Monitoring is not configured, not serving /health, /ready or /startup endpoints"
+            );
+        }
+    }
 
     tasks.wait_for_shutdown().await?;
 
@@ -168,6 +185,20 @@ async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 async fn register(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.protocols(["opentalk-orchestrator-json-v1.0"])
         .on_upgrade(|socket| handle_socket(socket, state))
+}
+
+pub async fn start_service_probe(
+    monitoring: Monitoring,
+    mut shutdown: ShutdownReceiver,
+) -> Result<()> {
+    start_probe(monitoring.address, monitoring.port, ServiceState::Ready)
+        .await
+        .context("Failed to start monitotoring endpoint")?;
+
+    shutdown.wait_for_shutdown().await;
+
+    stop_probe().await;
+    Ok(())
 }
 
 pub async fn shutdown_signal_handler(mut shutdown_signal: ShutdownReceiver) {
