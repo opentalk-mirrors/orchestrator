@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::path::PathBuf;
-
 use anyhow::Result;
 use axum::{
     Json, Router,
@@ -33,6 +31,7 @@ use crate::{
     tasks::{ShutdownReceiver, Tasks},
 };
 
+mod cli;
 mod recorder;
 mod roomserver;
 mod service_instance;
@@ -101,17 +100,17 @@ impl AppState {
     }
 }
 
-#[derive(Debug, Clone, Parser)]
-struct Args {
-    #[clap(short, long, help = "Specify path to configuration file")]
-    pub(crate) config: Option<PathBuf>,
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    let args = cli::Args::parse();
 
     tracing_subscriber::fmt::init();
+
+    if let Some(cmd) = args.cmd {
+        cli::handle_subcommand(cmd, args.config).await?;
+
+        return Ok(());
+    }
 
     let settings = Settings::load(args.config.as_deref())?;
 
