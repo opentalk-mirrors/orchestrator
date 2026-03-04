@@ -30,12 +30,14 @@ use crate::{
     recorder::RecorderInstance,
     service_instance::{registration::handle_socket, runner::InstanceCollection},
     settings::Settings,
+    tasks::{ShutdownReceiver, Tasks},
 };
 
 mod recorder;
 mod roomserver;
 mod service_instance;
 mod settings;
+mod tasks;
 mod transcription;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -105,14 +107,6 @@ struct Args {
     pub(crate) config: Option<PathBuf>,
 }
 
-async fn shutdown_signal() {
-    let mut sig_term = signal(SignalKind::terminate()).expect("cannot setup SIGTERM handler");
-    select! {
-        _ = signal::ctrl_c() => { log::info!("received Ctrl-C"); }
-        _ = sig_term.recv() => { log::info!("received SIGTERM"); }
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
@@ -121,6 +115,21 @@ async fn main() -> Result<()> {
 
     let settings = Settings::load(args.config.as_deref())?;
 
+    let mut tasks = Tasks::new();
+
+    tasks.spawn("shutdown_signal_handler", |shutdown| async move {
+        shutdown_signal_handler(shutdown).await;
+        Ok(())
+    });
+
+    tasks.spawn("webserver", |shutdown| run_webserver(settings, shutdown));
+
+    tasks.wait_for_shutdown().await?;
+
+    Ok(())
+}
+
+async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Result<()> {
     let state = AppState::new(settings.services.keys);
 
     let app = Router::new()
@@ -136,7 +145,7 @@ async fn main() -> Result<()> {
     let listener = tokio::net::TcpListener::bind(address).await?;
 
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(async move { shutdown.wait_for_shutdown().await })
         .await?;
 
     Ok(())
@@ -160,4 +169,18 @@ async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 async fn register(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.protocols(["opentalk-orchestrator-json-v1.0"])
         .on_upgrade(|socket| handle_socket(socket, state))
+}
+
+pub async fn shutdown_signal_handler(mut shutdown_signal: ShutdownReceiver) {
+    let mut sig_term = signal(SignalKind::terminate()).expect("cannot setup SIGTERM handler");
+    select! {
+        _ = signal::ctrl_c() => { log::debug!("received Ctrl-C"); }
+        _ = sig_term.recv() => { log::debug!("received SIGTERM"); }
+        _ = shutdown_signal.wait_for_shutdown() => {
+            log::trace!("Shutdown handler received shutdown signal from application state");
+            return;
+        }
+    }
+
+    log::info!("Received shutdown signal...");
 }
