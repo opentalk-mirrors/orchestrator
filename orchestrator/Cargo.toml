@@ -17,10 +17,13 @@ license.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 url.workspace = true
+clap.workspace = true
 axum.workspace = true
 bytes.workspace = true
 log.workspace = true
 opentalk-roomserver-types.workspace = true
+service-probe.workspace = true
+service-probe-client.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
@@ -44,7 +47,6 @@ thiserror.workspace = true
 config.workspace = true
 serde_path_to_error.workspace = true
 dirs.workspace = true
-clap.workspace = true
 
 [dev-dependencies]
 test-log.workspace = true

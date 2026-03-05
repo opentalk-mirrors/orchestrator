@@ -10,7 +10,10 @@ use http::Http;
 use serde::Deserialize;
 use services::Services;
 
+use crate::settings::monitoring::Monitoring;
+
 pub mod http;
+pub mod monitoring;
 pub mod services;
 
 #[derive(Debug, thiserror::Error)]
@@ -22,8 +25,13 @@ pub struct Error {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
+    /// Configuration for the orchestrators HTTP server
     pub http: Http,
 
+    /// Configuration for the orchestrators monitoring endpoints (ready, startup, liveness).
+    pub monitoring: Option<Monitoring>,
+
+    /// Configuration related to services that the orchestrator connects to
     pub services: Services,
 }
 

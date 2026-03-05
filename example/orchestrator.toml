@@ -26,6 +26,17 @@
 #
 api_keys = [{ id = "orchestrator", secret = "secret" }]
 
+#[monitoring]
+# Monitoring settings are optional and disabled by default
+#
+# When enabled, the service probe endpoints /health and /ready are available under the configured monitoring address.
+# These endpoints can be used to monitor the health of the orchestrator.
+
+# The address of the monitoring endpoint (defaults to 0.0.0.0)
+#address = "0.0.0.0"
+# The port of the monitoring endpoint (defaults to 11221)
+#port = 11221
+
 [services]
 # Service settings
 
