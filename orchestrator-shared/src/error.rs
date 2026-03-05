@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 pub enum RegistrationError {
     #[error("the requested address is already in use")]
     AddressAlreadyInUse,
+    #[error("the provided service address or port is invalid")]
+    InvalidServiceAddress,
     #[error("unknown api key ids")]
     UnknownApiKeyIds,
     #[error("failed to receive registration message within timeout")]

@@ -7,7 +7,7 @@ use std::time::Duration;
 use anyhow::{Chain, Context, Result};
 use async_trait::async_trait;
 use opentalk_orchestrator_shared::{
-    Event, Metrics, Register, RegisterData, RegisterResponse, RegisterType,
+    Event, Metrics, Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress,
 };
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
@@ -93,7 +93,7 @@ impl OrchestratorClient {
     /// (E.g. configuration error).
     pub async fn run<P>(
         mut self,
-        client_address: Url,
+        client_address: ServiceAddress,
         mut state_provider: P,
         shutdown_signal: impl Future<Output = ()>,
     ) -> Result<(), anyhow::Error>
@@ -141,7 +141,7 @@ impl OrchestratorClient {
 
     async fn inner_run<P>(
         &mut self,
-        client_address: Url,
+        client_address: ServiceAddress,
         state_provider: &mut P,
         shutdown_signal: impl Future<Output = ()>,
     ) -> Result<(), ClientError>
@@ -225,7 +225,7 @@ impl OrchestratorClient {
 
     async fn connect_and_register<P>(
         &self,
-        client_address: Url,
+        service_address: ServiceAddress,
         state_provider: &mut P,
     ) -> Result<SignalingSocket, ClientError>
     where
@@ -233,7 +233,7 @@ impl OrchestratorClient {
     {
         let mut socket = SignalingSocket::connect(&self.config).await?;
 
-        self.register(&mut socket, client_address, state_provider)
+        self.register(&mut socket, service_address, state_provider)
             .await?;
 
         Ok(socket)
@@ -243,7 +243,7 @@ impl OrchestratorClient {
     async fn register<P>(
         &self,
         socket: &mut SignalingSocket,
-        client_address: Url,
+        service_address: ServiceAddress,
         state_provider: &mut P,
     ) -> Result<()>
     where
@@ -251,7 +251,7 @@ impl OrchestratorClient {
     {
         let registration = Register {
             register_data: RegisterData {
-                client_address,
+                service_address,
                 api_key_ids: self.key_ids.clone(),
                 metrics: state_provider.metrics().await,
             },

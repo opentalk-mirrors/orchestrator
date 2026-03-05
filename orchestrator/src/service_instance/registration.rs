@@ -4,6 +4,7 @@
 
 use std::{
     collections::{HashSet, hash_map::Entry},
+    net::SocketAddr,
     sync::Arc,
     time::Duration,
 };
@@ -11,10 +12,12 @@ use std::{
 use anyhow::{Context, Result, bail};
 use axum::extract::ws::{CloseFrame, Message, WebSocket, close_code};
 use opentalk_orchestrator_shared::{
-    Register, RegisterData, RegisterResponse, RegisterType, error::RegistrationError,
+    Metrics, Register, RegisterResponse, RegisterType, ServiceAddress, error::RegistrationError,
 };
+use opentalk_service_auth::ApiKeyId;
 use opentalk_types_common::rooms::RoomId;
 use tokio::time::timeout;
+use url::Url;
 
 use crate::{
     AppState,
@@ -37,7 +40,7 @@ enum Error {
     WebSocket(#[from] axum::Error),
 }
 
-pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
+pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr, state: AppState) {
     let Register {
         register_data,
         register_type,
@@ -56,9 +59,39 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
         }
     };
 
-    let address = register_data.client_address.clone();
+    let address = match register_data.service_address.clone() {
+        ServiceAddress::Url(url) => url,
+        ServiceAddress::Port(port) => {
+            match Url::parse(&format!("http://{}:{}", socket_addr.ip(), port)) {
+                Ok(url) => url,
+                Err(err) => {
+                    log::error!(
+                        "failed to build service address from socket address and port: {err}"
+                    );
+                    send_registration_response(
+                        &mut socket,
+                        RegistrationError::InvalidServiceAddress,
+                    )
+                    .await;
+                    close_socket(
+                        socket,
+                        close_code::NORMAL,
+                        "failed to build service address",
+                    )
+                    .await;
+                    return;
+                }
+            }
+        }
+    };
 
     log::debug!("Received registration request from {address}");
+
+    let service_registration = ServiceRegistration {
+        address,
+        api_key_ids: register_data.api_key_ids,
+        metrics: register_data.metrics,
+    };
 
     match register_type {
         RegisterType::Recorder(_service_data) => {
@@ -66,7 +99,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, state: AppState) {
         }
         RegisterType::RoomServer(service_data) => {
             state
-                .run_roomserver_instance(socket, register_data, service_data.rooms)
+                .run_roomserver_instance(socket, service_registration, service_data.rooms)
                 .await;
         }
         RegisterType::Transcription(_service_data) => {
@@ -101,20 +134,30 @@ async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register
     }
 }
 
+/// The data received from a service instance during registration
+pub struct ServiceRegistration {
+    /// The address of the service instance
+    address: Url,
+    /// The api key ids provided by the service instance
+    api_key_ids: Vec<ApiKeyId>,
+    /// The initial metrics provided by the service instance
+    metrics: Metrics,
+}
+
 impl AppState {
     /// Register and run a new roomserver instance
     async fn run_roomserver_instance(
         &self,
         socket: WebSocket,
-        register: RegisterData,
+        registration: ServiceRegistration,
         rooms: HashSet<RoomId>,
     ) {
-        let address = register.client_address.clone();
+        let address = registration.address.clone();
 
         let runner = match self
             .create_instance_runner(
                 socket,
-                register,
+                registration,
                 rooms,
                 Arc::clone(&self.roomserver_services),
             )
@@ -143,14 +186,14 @@ impl AppState {
     async fn create_instance_runner<T: ServiceInstance>(
         &self,
         mut socket: WebSocket,
-        register: RegisterData,
+        registration: ServiceRegistration,
         managed_data: HashSet<T::ManagedResource>,
         instances: InstanceCollection<T>,
     ) -> Result<InstanceRunner<T>> {
-        let address = register.client_address.clone();
+        let address = registration.address.clone();
 
         if let Err(registration_error) = self
-            .register_instance(register, managed_data, Arc::clone(&instances))
+            .register_instance(registration, managed_data, Arc::clone(&instances))
             .await
         {
             let error_msg = registration_error.to_string();
@@ -167,17 +210,17 @@ impl AppState {
     /// Try to register a new service instance
     async fn register_instance<T: ServiceInstance>(
         &self,
-        register: RegisterData,
+        registration: ServiceRegistration,
         managed_data: HashSet<T::ManagedResource>,
         instances: InstanceCollection<T>,
     ) -> Result<(), RegistrationError> {
-        if !self.knows_any_of(&register.api_key_ids) {
+        if !self.knows_any_of(&registration.api_key_ids) {
             return Err(RegistrationError::UnknownApiKeyIds);
         }
 
         let mut guard = instances.lock().await;
 
-        let instance = match guard.entry(register.client_address.clone()) {
+        let instance = match guard.entry(registration.address) {
             Entry::Occupied(_) => {
                 return Err(RegistrationError::AddressAlreadyInUse);
             }
@@ -186,8 +229,8 @@ impl AppState {
 
         let instance_data = instance.instance_data_mut();
 
-        instance_data.metrics = register.metrics;
-        instance_data.api_key_ids = register.api_key_ids;
+        instance_data.metrics = registration.metrics;
+        instance_data.api_key_ids = registration.api_key_ids;
 
         Ok(())
     }
