@@ -13,6 +13,7 @@ use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
@@ -22,7 +23,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppState,
-    service_instance::{InstanceData, ServiceInstance, selection::SelectedInstance},
+    service_instance::{
+        InstanceData, ServiceInstance,
+        selection::{InstanceError, SelectedInstance},
+    },
 };
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -93,6 +97,64 @@ impl RoomBackend for AppState {
             .put(format!("{address}v1/rooms/{room_id}"))
             .header(AUTHORIZATION, auth_header)
             .json(&room_parameters)
+            .send()
+            .await
+            .map_err(|_| ApiError::internal().with_message("Roomserver unreachable"))?;
+
+        let status = response.status();
+
+        log::debug!("received status code: {response:?}");
+
+        let Some(room_action) = RoomAction::from_status_code(status) else {
+            let body = response
+                .json::<ErrorBody>()
+                .await
+                .map_err(|err| ApiError::internal().with_message(err.to_string()))?;
+
+            return Err(ApiError {
+                status,
+                www_authenticate: None,
+                body,
+            });
+        };
+
+        Ok(room_action)
+    }
+
+    async fn patch_room(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<RoomAction, ApiError> {
+        let SelectedInstance {
+            address,
+            auth_header,
+        } = match self.select_roomserver(room_id).await {
+            Ok(instance) => instance,
+            Err(err) => {
+                match err {
+                    InstanceError::NotAvailable => {
+                        // This is a special case where we would not want to return the 503 from the
+                        // instance selection. Instead we return a 404 to act as if we were the
+                        // roomserver and to avoid confusing the client.
+                        return Err(ApiError::not_found()
+                            .with_message("The requested room could not be found"));
+                    }
+                    err => {
+                        log::error!("Failed to select roomserver instance {err:?}");
+                        return Err(err.into());
+                    }
+                }
+            }
+        };
+
+        log::debug!("send patch request to roomserver '{address}'");
+
+        let response = self
+            .client
+            .patch(format!("{address}v1/rooms/{room_id}"))
+            .header(AUTHORIZATION, auth_header)
+            .json(&patch)
             .send()
             .await
             .map_err(|_| ApiError::internal().with_message("Roomserver unreachable"))?;
