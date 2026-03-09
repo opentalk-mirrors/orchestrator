@@ -148,7 +148,10 @@ mod tests {
     }
     #[tokio::test]
     async fn select_existing_instance() {
-        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
 
         let mut instances = app_state.roomserver_services.write().await;
 
@@ -181,7 +184,10 @@ mod tests {
 
     #[tokio::test]
     async fn select_lowest_load_instance() {
-        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
         let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
@@ -211,7 +217,10 @@ mod tests {
 
     #[tokio::test]
     async fn select_instance_not_accepting_jobs() {
-        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
         let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
@@ -250,7 +259,10 @@ mod tests {
 
     #[tokio::test]
     async fn no_instance_available() {
-        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
 
         let selected_instance = app_state.select_roomserver(RoomId::nil()).await;
 
@@ -262,7 +274,10 @@ mod tests {
 
     #[tokio::test]
     async fn no_accepting_jobs_instances() {
-        let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
         let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
