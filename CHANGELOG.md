@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-11
+
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.3.0...v0.4.0
+
+### 🚀 New features
+
+- (ci) Add release mr creation job ([!80](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/80), [#20](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/20))
+- Add sigterm handler to axum listen ([!87](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/87))
+- (orchestrator) Select service instances based on their load metrics ([!92](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/92))
+- Add CLI command for orchestrator metrics ([!97](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/97))
+- Add endpoint and CLI command for orchestrator service state ([!97](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/97))
+- (roomserver) Implement patch_room function ([!99](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/99))
+- Allow services to register by only providing a port ([!98](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/98), [#24](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/24))
+
+### 🐛 Bug fixes
+
+- (roomserver) Rename tracked resources from `breakout_rooms` to `rooms` ([!86](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/86))
+- (orchestrator) Add test attribute to instance selection tests ([!94](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/94))
+
+### 🔨 Refactor
+
+- Use a JoinSet to manage spawned tasks ([!96](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/96))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate opentalk-types-api-v1 to v0.52.3 ([!79](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/79))
+- (deps) Update rust crate clap to v4.5.58 ([!78](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/78))
+- (deps) Update opentalk ([!73](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/73), [!81](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/81))
+- (deps) Use types-common instead of types with common feature ([!74](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/74))
+- (deps) Update rust crate futures-util to v0.3.32 ([!82](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/82))
+- (deps) Update rust crate clap to v4.5.59 ([!85](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/85))
+- (deps) Update rust crate rand to 0.10 ([!76](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/76))
+- (deps) Update rust crate opentalk-types-api-v1 to 0.53 ([!90](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/90))
+- (deps) Lock file maintenance ([!77](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/77), [!83](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/83), [!91](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/91), [!93](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/93))
+- (deps) Update rust crate tokio to v1.50.0 ([!95](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/95))
+- (deps) Update opentalk crates ([!99](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/99))
+- (deps) Update roomserver types ([!101](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/101))
+
 ## [0.3.0] - 2026-02-05
 
 [0.3.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.2.0...v0.3.0
