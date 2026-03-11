@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::net::SocketAddr;
+
 use anyhow::{Context, Result};
 use axum::{
     Json, Router,
-    extract::{State, WebSocketUpgrade},
+    extract::{ConnectInfo, State, WebSocketUpgrade},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{any, get},
@@ -153,7 +155,8 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
         .route("/register", any(register))
         .layer(settings.http.api_keys.auth_middleware()?)
         .nest("/roomserver/v1", rooms::routes())
-        .with_state(state);
+        .with_state(state)
+        .into_make_service_with_connect_info::<SocketAddr>();
 
     let address = format!("{}:{}", settings.http.address, settings.http.port);
 
@@ -182,9 +185,13 @@ async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
-async fn register(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+async fn register(
+    ws: WebSocketUpgrade,
+    ConnectInfo(socket_addr): ConnectInfo<SocketAddr>,
+    State(state): State<AppState>,
+) -> Response {
     ws.protocols(["opentalk-orchestrator-json-v1.0"])
-        .on_upgrade(|socket| handle_socket(socket, state))
+        .on_upgrade(move |socket| handle_socket(socket, socket_addr, state))
 }
 
 pub async fn start_service_probe(

@@ -47,11 +47,20 @@ pub struct Register {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterData {
     /// The address of the service
-    pub client_address: Url,
+    pub service_address: ServiceAddress,
     /// A list of api key ids to that authorize requests to the service
     pub api_key_ids: Vec<ApiKeyId>,
     /// The initial metrics
     pub metrics: Metrics,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ServiceAddress {
+    /// The service provided a full URL as its address
+    Url(Url),
+    /// The service only provided a port, so the orchestrator should use the client's IP address
+    /// (received on registration) and the provided port to build the URL
+    Port(u16),
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

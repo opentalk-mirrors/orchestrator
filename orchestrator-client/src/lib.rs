@@ -8,7 +8,7 @@ pub mod signaling_socket;
 
 pub use client::OrchestratorClient;
 pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
-pub use opentalk_orchestrator_shared::{Metrics, RegisterType};
+pub use opentalk_orchestrator_shared::{Metrics, RegisterType, ServiceAddress};
 #[cfg(feature = "recording-service")]
 pub use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource, RegisterRecorder};
 #[cfg(feature = "roomserver-service")]
