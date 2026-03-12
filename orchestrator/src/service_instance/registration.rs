@@ -218,8 +218,7 @@ impl AppState {
             return Err(RegistrationError::UnknownApiKeyIds);
         }
 
-        let mut guard = instances.lock().await;
-
+        let mut guard = instances.write().await;
         let instance = match guard.entry(registration.address) {
             Entry::Occupied(_) => {
                 return Err(RegistrationError::AddressAlreadyInUse);

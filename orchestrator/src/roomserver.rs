@@ -270,7 +270,7 @@ mod tests {
         let roomserver_api_key = ApiKey::new("roomserver", "secret123");
 
         let app_state = AppState::new(ApiKeys::new(vec![roomserver_api_key]));
-        let mut roomservers = app_state.roomserver_services.lock().await;
+        let mut roomservers = app_state.roomserver_services.write().await;
 
         let mut rooms = HashSet::default();
         rooms.insert(ROOM_1);

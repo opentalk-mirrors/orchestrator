@@ -62,7 +62,7 @@ impl AppState {
         managed_data: T::ManagedResource,
         instances: &InstanceCollection<T>,
     ) -> Result<SelectedInstance, InstanceError> {
-        let mut instances = instances.lock().await;
+        let mut instances = instances.write().await;
 
         // No instances are registered for the requested service type
         if instances.is_empty() {
@@ -150,7 +150,7 @@ mod tests {
     async fn select_existing_instance() {
         let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
 
-        let mut instances = app_state.roomserver_services.lock().await;
+        let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
             "http://localhost:11333".parse().unwrap(),
@@ -182,7 +182,7 @@ mod tests {
     #[tokio::test]
     async fn select_lowest_load_instance() {
         let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
-        let mut instances = app_state.roomserver_services.lock().await;
+        let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
             "http://localhost:11333".parse().unwrap(),
@@ -212,7 +212,7 @@ mod tests {
     #[tokio::test]
     async fn select_instance_not_accepting_jobs() {
         let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
-        let mut instances = app_state.roomserver_services.lock().await;
+        let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
             "http://localhost:11333".parse().unwrap(),
@@ -263,7 +263,7 @@ mod tests {
     #[tokio::test]
     async fn no_accepting_jobs_instances() {
         let app_state = AppState::new(ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]));
-        let mut instances = app_state.roomserver_services.lock().await;
+        let mut instances = app_state.roomserver_services.write().await;
 
         instances.insert(
             "http://localhost:11333".parse().unwrap(),

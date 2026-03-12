@@ -8,7 +8,7 @@ use anyhow::{Context, Result, anyhow};
 use axum::extract::ws::Message;
 use opentalk_orchestrator_shared::Event;
 use tokio::{
-    sync::Mutex,
+    sync::RwLock,
     time::{Instant, Interval},
 };
 use url::Url;
@@ -17,7 +17,7 @@ use crate::service_instance::ServiceInstance;
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 
-pub(crate) type InstanceCollection<T> = Arc<Mutex<HashMap<Url, T>>>;
+pub(crate) type InstanceCollection<T> = Arc<RwLock<HashMap<Url, T>>>;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -125,7 +125,7 @@ impl<T: ServiceInstance> InstanceRunner<T> {
             }
         };
 
-        let mut guard = self.instances.lock().await;
+        let mut guard = self.instances.write().await;
 
         let Some(instance) = guard.get_mut(&self.client_address) else {
             return Err(anyhow!(
@@ -166,6 +166,6 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
     /// Remove the associated service instance from the global [`InstanceCollection`]
     async fn remove_associated_instance(&mut self) {
-        self.instances.lock().await.remove(&self.client_address);
+        self.instances.write().await.remove(&self.client_address);
     }
 }

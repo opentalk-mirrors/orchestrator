@@ -171,16 +171,16 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
 }
 
 async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
-    let recorder_services = state.recorder_services.lock().await.clone();
-    let roomserver_services = state.roomserver_services.lock().await.clone();
-    let transcription_services = state.transcription_services.lock().await.clone();
+    let recorder_services = state.recorder_services.read().await;
+    let roomserver_services = state.roomserver_services.read().await;
+    let transcription_services = state.transcription_services.read().await;
 
     (
         StatusCode::OK,
         Json(serde_json::json!({
-            "recorders": recorder_services,
-            "roomservers": roomserver_services,
-            "transcriptions": transcription_services,
+            "recorders": *recorder_services,
+            "roomservers": *roomserver_services,
+            "transcriptions": *transcription_services,
         })),
     )
 }
