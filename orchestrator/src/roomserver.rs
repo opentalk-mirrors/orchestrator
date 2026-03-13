@@ -98,17 +98,25 @@ impl RoomBackend for AppState {
             .header(AUTHORIZATION, auth_header)
             .json(&room_parameters)
             .send()
-            .await
-            .map_err(|_| ApiError::internal().with_message("Roomserver unreachable"))?;
+            .await;
+
+        let Ok(response) = response else {
+            tracing::debug!("Request failed with: '{response:?}'");
+            return Err(ApiError::internal().with_message("Roomserver unreachable"));
+        };
 
         let status = response.status();
+        let body = response.text().await.map_err(|err| {
+            ApiError::internal().with_message(format!(
+                "Failed to read response body: {:?}",
+                err.to_string()
+            ))
+        })?;
 
-        tracing::debug!("received status code: {response:?}");
+        tracing::trace!("received status code: {status:?}, response body: {body}");
 
         let Some(room_action) = RoomAction::from_status_code(status) else {
-            let body = response
-                .json::<ErrorBody>()
-                .await
+            let body = serde_json::from_str::<ErrorBody>(&body)
                 .map_err(|err| ApiError::internal().with_message(err.to_string()))?;
 
             return Err(ApiError {
@@ -156,17 +164,25 @@ impl RoomBackend for AppState {
             .header(AUTHORIZATION, auth_header)
             .json(&patch)
             .send()
-            .await
-            .map_err(|_| ApiError::internal().with_message("Roomserver unreachable"))?;
+            .await;
+
+        let Ok(response) = response else {
+            tracing::debug!("Request failed with: '{response:?}'");
+            return Err(ApiError::internal().with_message("Roomserver unreachable"));
+        };
 
         let status = response.status();
+        let body = response.text().await.map_err(|err| {
+            ApiError::internal().with_message(format!(
+                "Failed to read response body: {:?}",
+                err.to_string()
+            ))
+        })?;
 
-        tracing::debug!("received status code: {response:?}");
+        tracing::trace!("received status code: {status:?}, response body: {body}");
 
         let Some(room_action) = RoomAction::from_status_code(status) else {
-            let body = response
-                .json::<ErrorBody>()
-                .await
+            let body = serde_json::from_str::<ErrorBody>(&body)
                 .map_err(|err| ApiError::internal().with_message(err.to_string()))?;
 
             return Err(ApiError {
@@ -208,14 +224,22 @@ impl RoomBackend for AppState {
             .header(AUTHORIZATION, auth_header)
             .json(&token_request)
             .send()
-            .await
-            .map_err(|_| ApiError::internal().with_message("Roomserver unreachable"))?;
+            .await;
+
+        let Ok(response) = response else {
+            tracing::debug!("Request failed with: '{response:?}'");
+            return Err(ApiError::internal().with_message("Roomserver unreachable"));
+        };
 
         let status = response.status();
-
         let body = response.bytes().await.map_err(|e| {
             ApiError::internal().with_message(format!("Roomserver connection interrupted: {e}"))
         })?;
+
+        tracing::trace!(
+            "received status code: {status:?}, response body: {:?}",
+            std::str::from_utf8(&body)
+        );
 
         match status {
             StatusCode::OK => Ok(deserialize_token_response(status, &body)?),
