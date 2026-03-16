@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-name = "orchestrator"
+name = "opentalk-orchestrator"
 description = "OpenTalk Orchestrator Service"
 version.workspace = true
 publish = false

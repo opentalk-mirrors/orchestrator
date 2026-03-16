@@ -5,13 +5,13 @@
 FROM rust:alpine AS builder
 
 RUN apk --no-cache add musl-dev curl && \
-    mkdir /orchestrator 
+    mkdir /orchestrator
 
 WORKDIR /orchestrator
 
 ADD . /orchestrator
 
-RUN cargo build --release --locked -p orchestrator
+RUN cargo build --release --locked -p opentalk-orchestrator
 
 FROM alpine:latest
 
@@ -26,9 +26,9 @@ WORKDIR /orchestrator
 ENV USERID=1000
 ENV GROUPID=1000
 
-COPY --from=builder /orchestrator/target/release/orchestrator .
+COPY --from=builder /orchestrator/target/release/opentalk-orchestrator .
 
 USER $USERID:$GROUPID
 
 EXPOSE 11222
-ENTRYPOINT [ "./orchestrator" ]
+ENTRYPOINT [ "./opentalk-orchestrator" ]
