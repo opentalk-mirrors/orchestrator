@@ -53,8 +53,8 @@ allow = [
   "ISC",
   "MIT",
   "MPL-2.0",
-  "Unicode-3.0",
   "OpenSSL",
+  "Unicode-3.0",
   "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
@@ -73,28 +73,28 @@ exceptions = [
   ], name = "opentalk-orchestrator-shared" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-service-auth" },
+  ], name = "opentalk-roomserver-types" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types-common" },
+  ], name = "opentalk-roomserver-web-api" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types-common-macros" },
+  ], name = "opentalk-types-api-v1" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-common" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-common-identifiers" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types-api-v1" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-roomserver-types" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-roomserver-web-api" },
+  ], name = "opentalk-types-common-macros" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-signaling" },

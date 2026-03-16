@@ -22,8 +22,8 @@ roomserver-service = []
 transcription-service = []
 
 [dependencies]
-opentalk-types-common = { workspace = true, features = ["serde"] }
 opentalk-service-auth.workspace = true
+opentalk-types-common = { workspace = true, features = ["serde"] }
 serde.workspace = true
 thiserror.workspace = true
 url.workspace = true
