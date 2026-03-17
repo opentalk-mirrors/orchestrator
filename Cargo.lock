@@ -1520,7 +1520,7 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "opentalk-orchestrator"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1551,7 +1551,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-client"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1569,7 +1569,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-shared"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "opentalk-service-auth",
  "opentalk-types-common",
