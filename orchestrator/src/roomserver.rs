@@ -85,12 +85,12 @@ impl RoomBackend for AppState {
         } = match self.select_roomserver(room_id).await {
             Ok(instance) => instance,
             Err(err) => {
-                log::error!("Failed to select roomserver instance {err:?}");
+                tracing::error!("Failed to select roomserver instance {err:?}");
                 return Err(err.into());
             }
         };
 
-        log::debug!("send put request to roomserver '{address}'");
+        tracing::debug!("send put request to roomserver '{address}'");
 
         let response = self
             .client
@@ -103,7 +103,7 @@ impl RoomBackend for AppState {
 
         let status = response.status();
 
-        log::debug!("received status code: {response:?}");
+        tracing::debug!("received status code: {response:?}");
 
         let Some(room_action) = RoomAction::from_status_code(status) else {
             let body = response
@@ -141,14 +141,14 @@ impl RoomBackend for AppState {
                             .with_message("The requested room could not be found"));
                     }
                     err => {
-                        log::error!("Failed to select roomserver instance {err:?}");
+                        tracing::error!("Failed to select roomserver instance {err:?}");
                         return Err(err.into());
                     }
                 }
             }
         };
 
-        log::debug!("send patch request to roomserver '{address}'");
+        tracing::debug!("send patch request to roomserver '{address}'");
 
         let response = self
             .client
@@ -161,7 +161,7 @@ impl RoomBackend for AppState {
 
         let status = response.status();
 
-        log::debug!("received status code: {response:?}");
+        tracing::debug!("received status code: {response:?}");
 
         let Some(room_action) = RoomAction::from_status_code(status) else {
             let body = response
@@ -191,11 +191,11 @@ impl RoomBackend for AppState {
         } = match self.select_roomserver(room_id).await {
             Ok(instance) => instance,
             Err(err) => {
-                log::error!("Failed to select roomserver instance {err:?}");
+                tracing::error!("Failed to select roomserver instance {err:?}");
                 return Err(err.into());
             }
         };
-        log::debug!("send token request to roomserver '{address}'");
+        tracing::debug!("send token request to roomserver '{address}'");
 
         let token_request = TokenRequestBody {
             client_parameters,
@@ -238,7 +238,7 @@ fn deserialize_token_response<T: for<'a> Deserialize<'a>>(
     match serde_json::from_slice::<T>(body) {
         Ok(t) => Ok(t),
         Err(e) => {
-            log::error!(
+            tracing::error!(
                 "Unexpected roomserver token response body for status {status}: {e}\nBody:\n{}",
                 String::from_utf8_lossy(body)
             );

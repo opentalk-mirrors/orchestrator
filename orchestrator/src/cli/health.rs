@@ -38,7 +38,7 @@ pub async fn health_check(config: Option<PathBuf>, args: HealthArgs) -> anyhow::
         }
     };
 
-    log::debug!("Checking readiness of orchestrator at {url}");
+    tracing::debug!("Checking readiness of orchestrator at {url}");
 
     if is_ready(&url).await.context("Failed to get ready state")? {
         println!("READY");
