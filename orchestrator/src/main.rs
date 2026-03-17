@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod cli;
+mod logging;
 mod recorder;
 mod roomserver;
 mod service_instance;
@@ -107,7 +108,8 @@ impl AppState {
 async fn main() -> Result<()> {
     let args = cli::Args::parse();
 
-    tracing_subscriber::fmt::init();
+    // Initialize an early primitive logger until the settings are loaded
+    let early_logger = logging::early_logging();
 
     if let Some(cmd) = args.cmd {
         cli::handle_subcommand(cmd, args.config).await?;
@@ -116,6 +118,9 @@ async fn main() -> Result<()> {
     }
 
     let settings = Settings::load(args.config.as_deref())?;
+
+    drop(early_logger);
+    logging::init_logging(settings.logging.as_ref());
 
     let mut tasks = Tasks::new();
 
