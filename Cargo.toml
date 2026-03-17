@@ -15,32 +15,37 @@ version = "0.4.1"
 license = "EUPL-1.2"
 
 [workspace.dependencies]
-reqwest = { version = "0.13", default-features = false, features = [
-  "json",
-  "rustls",
-] }
 anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["http2", "ws"] }
 bytes = "1.10"
+clap = { version = "4.5", features = ["derive"] }
+config = "0.15"
+dirs = "6.0"
 env = "1.0"
 futures-util = "0.3"
 log = "0.4"
-url = "2.5"
-service-probe = "0.4"
-service-probe-client = "0.4"
+opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.4" }
 opentalk-roomserver-types = "0.0.25"
 opentalk-roomserver-web-api = "0.0.25"
+opentalk-service-auth = { version = "0.2.1", default-features = false }
+opentalk-types-api-common = "0.6.0"
 opentalk-types-api-v1 = { version = "0.54", default-features = false, features = [
   "http",
 ] }
 opentalk-types-common = { version = "0.42", default-features = false, features = [
   "serde",
 ] }
-opentalk-types-api-common = "0.6.0"
+reqwest = { version = "0.13", default-features = false, features = [
+  "json",
+  "rustls",
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.4" }
+serde_path_to_error = "0.1"
+service-probe = "0.4"
+service-probe-client = "0.4"
+test-log = "0.2"
 thiserror = "2.0"
 tokio = { version = "1.47", default-features = false }
 tokio-tungstenite = { version = "0.28", default-features = false, features = [
@@ -50,12 +55,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tungstenite = { version = "0.28", default-features = false, features = [
   "rustls",
 ] }
-test-log = "0.2"
-opentalk-service-auth = { version = "0.2.1", default-features = false }
-config = "0.15"
-serde_path_to_error = "0.1"
-dirs = "6.0"
-clap = { version = "4.5", features = ["derive"] }
+url = "2.5"
 
 
 [workspace.lints.clippy]
