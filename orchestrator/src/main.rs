@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod cli;
+mod logging;
 mod recorder;
 mod roomserver;
 mod service_instance;
@@ -107,7 +108,8 @@ impl AppState {
 async fn main() -> Result<()> {
     let args = cli::Args::parse();
 
-    tracing_subscriber::fmt::init();
+    // Initialize an early primitive logger until the settings are loaded
+    let early_logger = logging::early_logging();
 
     if let Some(cmd) = args.cmd {
         cli::handle_subcommand(cmd, args.config).await?;
@@ -116,6 +118,9 @@ async fn main() -> Result<()> {
     }
 
     let settings = Settings::load(args.config.as_deref())?;
+
+    drop(early_logger);
+    logging::init_logging(settings.logging.as_ref());
 
     let mut tasks = Tasks::new();
 
@@ -136,7 +141,7 @@ async fn main() -> Result<()> {
             });
         }
         None => {
-            log::info!(
+            tracing::info!(
                 "Monitoring is not configured, not serving /health, /ready or /startup endpoints"
             );
         }
@@ -160,7 +165,7 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
 
     let address = format!("{}:{}", settings.http.address, settings.http.port);
 
-    log::info!("Listening on address {address}");
+    tracing::info!("Listening on address {address}");
     let listener = tokio::net::TcpListener::bind(address).await?;
 
     axum::serve(listener, app)
@@ -211,13 +216,13 @@ pub async fn start_service_probe(
 pub async fn shutdown_signal_handler(mut shutdown_signal: ShutdownReceiver) {
     let mut sig_term = signal(SignalKind::terminate()).expect("cannot setup SIGTERM handler");
     select! {
-        _ = signal::ctrl_c() => { log::debug!("received Ctrl-C"); }
-        _ = sig_term.recv() => { log::debug!("received SIGTERM"); }
+        _ = signal::ctrl_c() => { tracing::debug!("received Ctrl-C"); }
+        _ = sig_term.recv() => { tracing::debug!("received SIGTERM"); }
         _ = shutdown_signal.wait_for_shutdown() => {
-            log::trace!("Shutdown handler received shutdown signal from application state");
+            tracing::trace!("Shutdown handler received shutdown signal from application state");
             return;
         }
     }
 
-    log::info!("Received shutdown signal...");
+    tracing::info!("Received shutdown signal...");
 }

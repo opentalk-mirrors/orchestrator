@@ -1529,7 +1529,6 @@ dependencies = [
  "clap",
  "config",
  "dirs",
- "log",
  "opentalk-orchestrator-shared",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -1545,6 +1544,7 @@ dependencies = [
  "test-log",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
  "tracing-subscriber",
  "url",
 ]

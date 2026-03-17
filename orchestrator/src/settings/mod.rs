@@ -10,9 +10,10 @@ use http::Http;
 use serde::Deserialize;
 use services::Services;
 
-use crate::settings::monitoring::Monitoring;
+use crate::settings::{logging::Logging, monitoring::Monitoring};
 
 pub mod http;
+pub mod logging;
 pub mod monitoring;
 pub mod services;
 
@@ -27,6 +28,8 @@ pub struct Error {
 pub struct Settings {
     /// Configuration for the orchestrators HTTP server
     pub http: Http,
+
+    pub logging: Option<Logging>,
 
     /// Configuration for the orchestrators monitoring endpoints (ready, startup, liveness).
     pub monitoring: Option<Monitoring>,

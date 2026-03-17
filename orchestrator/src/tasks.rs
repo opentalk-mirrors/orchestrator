@@ -19,7 +19,7 @@ impl ShutdownReceiver {
     pub async fn wait_for_shutdown(&mut self) {
         let res = self.0.recv().await;
         if let Err(e) = res {
-            log::error!("Shutdown sender was dropped: {e}");
+            tracing::error!("Shutdown sender was dropped: {e}");
         }
     }
 }
@@ -62,7 +62,7 @@ impl Tasks {
         F: FnOnce(ShutdownReceiver) -> Fut + Send + 'static,
         Fut: Future<Output = Result<()>> + Send + 'static,
     {
-        log::debug!("Spawning {name} task");
+        tracing::debug!("Spawning {name} task");
         let shutdown_signal = self.shutdown_signal.subscribe();
 
         self.tasks.spawn(async move {
@@ -77,11 +77,11 @@ impl Tasks {
     pub async fn wait_for_shutdown(&mut self) -> Result<()> {
         match self.tasks.join_next().await {
             Some(Ok(TaskFinished { name, result })) => match result {
-                Ok(()) => log::debug!("{name} task finished"),
-                Err(e) => log::error!("{name} exited with error: {e:?}"),
+                Ok(()) => tracing::debug!("{name} task finished"),
+                Err(e) => tracing::error!("{name} exited with error: {e:?}"),
             },
             Some(Err(e)) => {
-                log::error!("A task panicked: {e}");
+                tracing::error!("A task panicked: {e}");
             }
             None => {
                 anyhow::bail!("Failed to spawn any task");
@@ -89,7 +89,7 @@ impl Tasks {
         }
 
         if let Err(e) = self.shutdown_gracefully().await {
-            log::error!("Graceful shutdown failed, aborting all tasks");
+            tracing::error!("Graceful shutdown failed, aborting all tasks");
             self.tasks.abort_all();
             return Err(e.context("Forced shutdown"));
         }
@@ -98,7 +98,7 @@ impl Tasks {
     }
 
     async fn shutdown_gracefully(&mut self) -> anyhow::Result<()> {
-        log::info!("Shutting down remaining tasks...");
+        tracing::info!("Shutting down remaining tasks...");
         self.shutdown_signal
             .send(())
             .context("Failed to send shutdown signal")?;
@@ -109,15 +109,15 @@ impl Tasks {
             let result = timeout_at(deadline, self.tasks.join_next()).await;
             match result {
                 Ok(None) => {
-                    log::info!("All tasks exited gracefully");
+                    tracing::info!("All tasks exited gracefully");
                     return Ok(());
                 }
                 Ok(Some(Ok(TaskFinished { name, result }))) => match result {
-                    Ok(()) => log::info!("{name} task exited"),
-                    Err(e) => log::error!("{name} task exited with error: {e:?}"),
+                    Ok(()) => tracing::info!("{name} task exited"),
+                    Err(e) => tracing::error!("{name} task exited with error: {e:?}"),
                 },
                 Ok(Some(Err(e))) => {
-                    log::error!("A task panicked: {e}");
+                    tracing::error!("A task panicked: {e}");
                 }
                 Err(_) => {
                     anyhow::bail!("Not all tasks finished within the grace period");

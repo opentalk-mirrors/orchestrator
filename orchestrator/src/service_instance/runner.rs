@@ -76,7 +76,7 @@ impl<T: ServiceInstance> InstanceRunner<T> {
         loop {
             tokio::select! {
                 _ = heartbeat.tick() => {
-                    log::error!("heartbeat timeout({HEARTBEAT_TIMEOUT:?}) triggered");
+                    tracing::error!("heartbeat timeout({HEARTBEAT_TIMEOUT:?}) triggered");
                     break;
                 }
                 msg = self.socket.recv() => self.handle_message(msg, &mut heartbeat).await?
@@ -98,7 +98,7 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
         let event: Event = match msg {
             Message::Close(close_frame) => {
-                log::debug!(
+                tracing::debug!(
                     "received close message {close_frame:?} for websocket connection ({})",
                     self.client_address
                 );
@@ -137,12 +137,12 @@ impl<T: ServiceInstance> InstanceRunner<T> {
 
         match event {
             Event::Metrics(metrics) => {
-                log::trace!(
+                tracing::trace!(
                     "set metrics '{metrics:?}' for connection '{}'",
                     self.client_address
                 );
 
-                log::trace!("reset heartbeat for connection '{}'", self.client_address);
+                tracing::trace!("reset heartbeat for connection '{}'", self.client_address);
                 heartbeat.reset();
 
                 instance.instance_data_mut().metrics = metrics;

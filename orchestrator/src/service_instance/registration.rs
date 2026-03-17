@@ -47,7 +47,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
     } = match receive_registration_message(&mut socket).await {
         Ok(msg) => msg,
         Err(err) => {
-            log::error!("failed to register new service: {err}");
+            tracing::error!("failed to register new service: {err}");
 
             if let Error::Registration(registration_error) = err {
                 send_registration_response(&mut socket, registration_error).await;
@@ -65,7 +65,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
             match Url::parse(&format!("http://{}:{}", socket_addr.ip(), port)) {
                 Ok(url) => url,
                 Err(err) => {
-                    log::error!(
+                    tracing::error!(
                         "failed to build service address from socket address and port: {err}"
                     );
                     send_registration_response(
@@ -85,7 +85,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
         }
     };
 
-    log::debug!("Received registration request from {address}");
+    tracing::debug!("Received registration request from {address}");
 
     let service_registration = ServiceRegistration {
         address,
@@ -111,7 +111,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
 /// Receive and parse the [`Register`] message on the given socket
 async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register, Error> {
     let Ok(message) = timeout(REGISTRATION_TIMEOUT, socket.recv()).await else {
-        log::error!("did not receive registration message for {REGISTRATION_TIMEOUT:?}");
+        tracing::error!("did not receive registration message for {REGISTRATION_TIMEOUT:?}");
         return Err(RegistrationError::Timeout.into());
     };
 
@@ -128,7 +128,7 @@ async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register
     match parse_message.context("unable to parse register message") {
         Ok(message) => Ok(message),
         Err(err) => {
-            log::debug!("failed to parse registration message: {err}");
+            tracing::debug!("failed to parse registration message: {err}");
             Err(RegistrationError::InvalidJson.into())
         }
     }
@@ -165,19 +165,21 @@ impl AppState {
         {
             Ok(runner) => runner,
             Err(err) => {
-                log::error!("failed to register roomserver ({address}): {err:?}");
+                tracing::error!("failed to register roomserver ({address}): {err:?}");
                 return;
             }
         };
 
-        log::info!("successfully registered roomserver ({address})");
+        tracing::info!("successfully registered roomserver ({address})");
 
         match runner.run().await {
             Ok(()) => {
-                log::info!("disconnected from roomserver({address}), connection closed by service");
+                tracing::info!(
+                    "disconnected from roomserver({address}), connection closed by service"
+                );
             }
             Err(err) => {
-                log::error!("unexpected disconnect from roomserver({address}): {err:?}");
+                tracing::error!("unexpected disconnect from roomserver({address}): {err:?}");
             }
         }
     }
@@ -241,11 +243,11 @@ async fn send_registration_response(socket: &mut WebSocket, response: impl Into<
     match serde_json::to_string(&response) {
         Ok(error_message) => {
             if let Err(err) = socket.send(Message::Text(error_message.into())).await {
-                log::error!("failed to send registration response: {err} ")
+                tracing::error!("failed to send registration response: {err} ")
             }
         }
         Err(err) => {
-            log::error!("failed to serialize registration response: {err}");
+            tracing::error!("failed to serialize registration response: {err}");
         }
     };
 }
@@ -258,6 +260,6 @@ async fn close_socket<S: AsRef<str>>(mut socket: WebSocket, code: u16, reason: S
         })))
         .await
     {
-        log::debug!("Failed to close websocket connection: {err}");
+        tracing::debug!("Failed to close websocket connection: {err}");
     };
 }
