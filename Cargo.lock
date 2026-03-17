@@ -1519,6 +1519,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
+name = "opentalk-orchestrator"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "bytes",
+ "clap",
+ "config",
+ "dirs",
+ "log",
+ "opentalk-orchestrator-shared",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-web-api",
+ "opentalk-service-auth",
+ "opentalk-types-api-common",
+ "opentalk-types-common",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "service-probe",
+ "service-probe-client",
+ "test-log",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
 name = "opentalk-orchestrator-client"
 version = "0.4.0"
 dependencies = [
@@ -1590,15 +1621,15 @@ dependencies = [
 
 [[package]]
 name = "opentalk-service-auth"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "726bcee48a54bc4acfe2a0d986197ba744376928f9aa0265d13823a04c67cc65"
+checksum = "7bd9205ccd9f6a7a71c4cefa08e9e799bd2525d3d86e9aa1aeb4a34a018c6154"
 dependencies = [
  "axum",
  "futures",
  "jsonwebtoken",
  "opentalk-types-api-common",
- "rand 0.9.2",
+ "rand 0.10.0",
  "serde",
  "thiserror 2.0.18",
  "tower",
@@ -1710,37 +1741,6 @@ name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
-
-[[package]]
-name = "orchestrator"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum",
- "bytes",
- "clap",
- "config",
- "dirs",
- "log",
- "opentalk-orchestrator-shared",
- "opentalk-roomserver-types",
- "opentalk-roomserver-web-api",
- "opentalk-service-auth",
- "opentalk-types-api-common",
- "opentalk-types-common",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "service-probe",
- "service-probe-client",
- "test-log",
- "thiserror 2.0.18",
- "tokio",
- "tracing-subscriber",
- "url",
-]
 
 [[package]]
 name = "ordered-multimap"

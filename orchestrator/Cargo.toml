@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-name = "orchestrator"
+name = "opentalk-orchestrator"
 description = "OpenTalk Orchestrator Service"
 version.workspace = true
 publish = false
@@ -42,7 +42,7 @@ tokio = { workspace = true, features = [
   "signal",
 ] }
 tracing-subscriber.workspace = true
-opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
 thiserror.workspace = true
 config.workspace = true
 serde_path_to_error.workspace = true
