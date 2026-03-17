@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-03-17
+
+[0.4.1]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.4.0...v0.4.1
+
+### 🐛 Bug fixes
+
+- Use rwlock instead of mutex ([!102](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/102))
+
+### ⚙ Miscellaneous
+
+- Rename `orchestrator` crate to `opentalk-orchestrator` ([!105](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/105))
+- Do not use default-feature for service auth crate ([!105](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/105))
+
 ## [0.4.0] - 2026-03-11
 
 [0.4.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.3.0...v0.4.0
