@@ -21,6 +21,7 @@ bytes.workspace = true
 clap.workspace = true
 config.workspace = true
 dirs.workspace = true
+futures-util.workspace = true
 opentalk-orchestrator-shared = { workspace = true, features = [
   "recording-service",
   "roomserver-service",
@@ -44,6 +45,7 @@ tokio = { workspace = true, features = [
   "sync",
   "signal",
 ] }
+tokio-tungstenite.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true

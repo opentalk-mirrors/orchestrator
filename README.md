@@ -46,6 +46,15 @@ The orchestrator receives the request and can now determine which roomserver thi
 room `28be42...` is already managed by one of the roomservers, the request is forwarded to that roomserver instance.
 If none of the roomservers manage room `28be42...`, the instance with the lowest load is selected to host the new room.
 
+### Signaling Proxy
+
+Besides the web API proxying, the orchestrator also provides a signaling endpoint under `/roomserver/v1/signaling/{token}`
+that proxies the signaling websocket between a client and the managed roomserver instances.
+
+Neither the client nor the roomserver need a any configuration for this. When a client requests a token from a
+roomserver through the orchestrator, the orchestrator injects its signaling URL as `public_url` into the roomservers
+`RoomServerAccess` response.
+
 ## Configuration
 
 Each orchestrated service has an `orchestrator` section in their respective config that must be configured to point to

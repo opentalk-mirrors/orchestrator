@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::{Context, Result};
 use axum::{
@@ -13,7 +13,6 @@ use axum::{
     routing::{any, get},
 };
 use clap::Parser;
-use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
 use roomserver::RoomserverInstance;
@@ -24,11 +23,14 @@ use tokio::{
         self,
         unix::{SignalKind, signal},
     },
+    sync::Mutex,
 };
 use transcription::TranscriptionInstance;
+use url::Url;
 
 use crate::{
     recorder::RecorderInstance,
+    roomserver::token_store::TokenStore,
     service_instance::{registration::handle_socket, runner::InstanceCollection},
     settings::{Settings, monitoring::Monitoring},
     tasks::{ShutdownReceiver, Tasks},
@@ -50,22 +52,26 @@ pub enum ServiceType {
     Transcription,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct AppState {
     client: Client,
+    public_url: Url,
     service_keys: ApiKeys,
     recorder_services: InstanceCollection<RecorderInstance>,
     roomserver_services: InstanceCollection<RoomserverInstance>,
+    roomserver_tokens: Arc<Mutex<TokenStore>>,
     transcription_services: InstanceCollection<TranscriptionInstance>,
 }
 
 impl AppState {
-    fn new(service_keys: ApiKeys) -> Self {
+    fn new(service_keys: ApiKeys, public_url: Url) -> Self {
         Self {
             client: Default::default(),
+            public_url,
             service_keys,
             recorder_services: Default::default(),
             roomserver_services: Default::default(),
+            roomserver_tokens: Arc::new(Mutex::new(TokenStore::new())),
             transcription_services: Default::default(),
         }
     }
@@ -153,13 +159,13 @@ async fn main() -> Result<()> {
 }
 
 async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Result<()> {
-    let state = AppState::new(settings.services.keys);
+    let state = AppState::new(settings.services.keys, settings.http.public_url);
 
     let app = Router::new()
         .route("/metrics", get(metrics))
         .route("/register", any(register))
         .layer(settings.http.api_keys.auth_middleware()?)
-        .nest("/roomserver/v1", rooms::routes())
+        .nest("/roomserver/v1", roomserver::routes())
         .with_state(state)
         .into_make_service_with_connect_info::<SocketAddr>();
 

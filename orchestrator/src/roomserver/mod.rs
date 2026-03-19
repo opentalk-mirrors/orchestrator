@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use axum::http::StatusCode;
+use axum::{Router, http::StatusCode};
 use bytes::Bytes;
 use opentalk_orchestrator_shared::RoomServerEvent;
 use opentalk_roomserver_types::{
@@ -15,7 +15,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend};
+use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend, rooms};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_common::rooms::RoomId;
 use reqwest::header::AUTHORIZATION;
@@ -28,6 +28,15 @@ use crate::{
         selection::{InstanceError, SelectedInstance},
     },
 };
+
+pub mod signaling;
+pub mod token_store;
+
+pub fn routes() -> Router<AppState> {
+    Router::new()
+        .merge(signaling::routes())
+        .merge(rooms::routes())
+}
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct RoomserverInstance {
@@ -241,8 +250,32 @@ impl RoomBackend for AppState {
             std::str::from_utf8(&body)
         );
 
+        let signaling_url = self.public_url.join("/roomserver").map_err(|e| {
+            tracing::error!("Failed to build roomserver proxy endpoint: {e}");
+            ApiError::internal()
+        })?;
+
         match status {
-            StatusCode::OK => Ok(deserialize_token_response(status, &body)?),
+            StatusCode::OK => {
+                let mut roomserver_access: RoomServerAccess =
+                    deserialize_token_response(status, &body)?;
+
+                if let Err(e) = self
+                    .roomserver_tokens
+                    .lock()
+                    .await
+                    .add_token(room_id, roomserver_access.token)
+                {
+                    tracing::error!("Failed to store roomserver token: {e}");
+                    return Err(
+                        ApiError::internal().with_message("Failed to store roomserver token")
+                    );
+                };
+
+                roomserver_access.public_url = signaling_url;
+
+                Ok(roomserver_access)
+            }
             StatusCode::UNAUTHORIZED => {
                 Err(ApiError::internal().with_message("Failed to authorize at roomserver"))
             }
@@ -293,7 +326,10 @@ mod tests {
 
         let roomserver_api_key = ApiKey::new("roomserver", "secret123");
 
-        let app_state = AppState::new(ApiKeys::new(vec![roomserver_api_key]));
+        let app_state = AppState::new(
+            ApiKeys::new(vec![roomserver_api_key]),
+            Url::parse("http://localhost:11222").unwrap(),
+        );
         let mut roomservers = app_state.roomserver_services.write().await;
 
         let mut rooms = HashSet::default();
