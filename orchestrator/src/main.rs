@@ -7,7 +7,7 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::{Context, Result};
 use axum::{
     Json, Router,
-    extract::{ConnectInfo, State, WebSocketUpgrade},
+    extract::{ConnectInfo, OriginalUri, State, WebSocketUpgrade},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{any, get},
@@ -167,6 +167,7 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
         .layer(settings.http.api_keys.auth_middleware()?)
         .nest("/roomserver/v1", roomserver::routes())
         .with_state(state)
+        .fallback(not_found_handler)
         .into_make_service_with_connect_info::<SocketAddr>();
 
     let address = format!("{}:{}", settings.http.address, settings.http.port);
@@ -203,6 +204,12 @@ async fn register(
 ) -> Response {
     ws.protocols(["opentalk-orchestrator-json-v1.0"])
         .on_upgrade(move |socket| handle_socket(socket, socket_addr, state))
+}
+
+async fn not_found_handler(OriginalUri(uri): OriginalUri) -> impl IntoResponse {
+    tracing::debug!("Received request for unknown route: {}", uri);
+
+    (StatusCode::NOT_FOUND, "requested route was not found")
 }
 
 pub async fn start_service_probe(
