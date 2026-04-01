@@ -7,7 +7,7 @@ use axum::{
     Router,
     extract::{Path, State, WebSocketUpgrade, ws::WebSocket},
     response::Response,
-    routing::get,
+    routing::any,
 };
 use futures_util::{SinkExt, StreamExt};
 use opentalk_types_api_common::error::ApiError;
@@ -19,7 +19,7 @@ type RoomserverSocket = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 use crate::AppState;
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route("/signaling/{token}", get(roomserver_signaling))
+    Router::new().route("/signaling/{token}", any(roomserver_signaling))
 }
 
 pub async fn roomserver_signaling(
