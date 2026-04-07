@@ -23,7 +23,7 @@ config.workspace = true
 dirs.workspace = true
 futures-util.workspace = true
 jsonwebtoken = { workspace = true, features = ["aws-lc-rs"] }
-opentalk-orchestrator-shared = { version = "=0.4.1", features = [
+opentalk-orchestrator-shared = { version = "=0.4.2", features = [
   "recording-service",
   "roomserver-service",
   "transcription-service",
