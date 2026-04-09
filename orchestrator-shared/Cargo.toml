@@ -5,7 +5,7 @@
 [package]
 name = "opentalk-orchestrator-shared"
 description = "Shared types for orchestrated services"
-version = "0.4.2"
+version = "0.5.0"
 publish = true
 authors.workspace = true
 edition.workspace = true
@@ -23,7 +23,7 @@ transcription-service = []
 
 [dependencies]
 opentalk-service-auth.workspace = true
-opentalk-types-common = { version = "0.43", features = ["serde"] }
+opentalk-types-common = { workspace = true, features = ["serde"] }
 serde.workspace = true
 thiserror.workspace = true
 url.workspace = true
