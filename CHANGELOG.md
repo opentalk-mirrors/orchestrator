@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-09
+
+[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.4.1...v0.5.0
+
+### 🚀 New features
+
+- (orchestrator) Add logging configuration and default directives ([!107](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/107), [#22](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/22))
+- Add roomserver signaling proxy ([!100](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/100), [#25](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/25))
+- (orchestrator) Add fallback 404 handler ([!108](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/108), [#32](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/32))
+
+### 🐛 Bug fixes
+
+- (logging) Add more extensive debug logging ([!103](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/103))
+- Ensure CryptoProvider is configured ([!110](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/110))
+- Allow `GET` and `CONNECT` methods to upgrade ws requests ([!114](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/114))
+- Use RecorderResource in RecorderEvent ([!121](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/121))
+
+### 🔨 Refactor
+
+- (orchestrator) Replace log crate with tracing ([!107](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/107))
+
+### 📦 Dependencies
+
+- (deps) Update `opentalk-types-common` in `opentalk-orchestrator-shared` only ([!115](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/115))
+- (deps) Update all dependencies ([!112](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/112), [!118](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/118))
+
+### ⚙ Miscellaneous
+
+- (toml) Format toml files ([!104](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/104))
+
+### Ci
+
+- (just) Switch changelog tool to opentalk git-cliff ([!109](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/109))
+- Use changelog template ([!113](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/113))
+
 ## [0.4.1] - 2026-03-17
 
 [0.4.1]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.4.0...v0.4.1
