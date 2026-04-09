@@ -17,12 +17,12 @@ pub struct RegisterRecorder {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash, Eq)]
 pub struct RecorderResource {
     pub room_id: RoomId,
-    pub breakout_id: Option<u64>,
+    pub breakout_id: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum RecorderEvent {
-    RemoveRoom(RoomId),
+    RemoveRecording(RecorderResource),
 }
 
 impl From<RecorderEvent> for Event {
