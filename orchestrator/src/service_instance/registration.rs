@@ -12,7 +12,8 @@ use std::{
 use anyhow::{Context, Result, bail};
 use axum::extract::ws::{CloseFrame, Message, WebSocket, close_code};
 use opentalk_orchestrator_shared::{
-    Metrics, Register, RegisterResponse, RegisterType, ServiceAddress, error::RegistrationError,
+    Metrics, RecorderResource, Register, RegisterResponse, RegisterType, ServiceAddress,
+    error::RegistrationError,
 };
 use opentalk_service_auth::ApiKeyId;
 use opentalk_types_common::rooms::RoomId;
@@ -94,8 +95,10 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
     };
 
     match register_type {
-        RegisterType::Recorder(_service_data) => {
-            todo!()
+        RegisterType::Recorder(service_data) => {
+            state
+                .run_recorder_instance(socket, service_registration, service_data.rooms)
+                .await;
         }
         RegisterType::RoomServer(service_data) => {
             state
@@ -175,11 +178,50 @@ impl AppState {
         match runner.run().await {
             Ok(()) => {
                 tracing::info!(
-                    "disconnected from roomserver({address}), connection closed by service"
+                    "disconnected from roomserver ({address}), connection closed by service"
                 );
             }
             Err(err) => {
-                tracing::error!("unexpected disconnect from roomserver({address}): {err:?}");
+                tracing::error!("unexpected disconnect from roomserver ({address}): {err:?}");
+            }
+        }
+    }
+
+    /// Register and run a new recorder instance
+    async fn run_recorder_instance(
+        &self,
+        socket: WebSocket,
+        registration: ServiceRegistration,
+        rooms: HashSet<RecorderResource>,
+    ) {
+        let address = registration.address.clone();
+
+        let runner = match self
+            .create_instance_runner(
+                socket,
+                registration,
+                rooms,
+                Arc::clone(&self.recorder_services),
+            )
+            .await
+        {
+            Ok(runner) => runner,
+            Err(err) => {
+                tracing::error!("failed to register recorder ({address}): {err:?}");
+                return;
+            }
+        };
+
+        tracing::info!("successfully registered recorder ({address})");
+
+        match runner.run().await {
+            Ok(()) => {
+                tracing::info!(
+                    "disconnected from recorder ({address}), connection closed by service"
+                );
+            }
+            Err(err) => {
+                tracing::error!("unexpected disconnect from recorder ({address}): {err:?}");
             }
         }
     }

@@ -28,10 +28,12 @@ opentalk-orchestrator-shared = { workspace = true, features = [
   "roomserver-service",
   "transcription-service",
 ] }
+opentalk-recorder-web-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
 opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
+opentalk-types-api-internal.workspace = true
 opentalk-types-common.workspace = true
 reqwest.workspace = true
 rustls = { workspace = true, features = ["aws-lc-rs"] }

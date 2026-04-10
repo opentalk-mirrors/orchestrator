@@ -19,8 +19,8 @@ web APIs of orchestrated services and forwards requests towards the appropriate 
 
 | Service       | Orchestrator endpoint |
 | ------------- | --------------------- |
-| Roomserver    | `/roomserver`         |
-| Recorder      | `todo`                |
+| Roomserver    | `/roomserver/`        |
+| Recorder      | `/recording/`         |
 | Transcription | `todo`                |
 
 ## How it works

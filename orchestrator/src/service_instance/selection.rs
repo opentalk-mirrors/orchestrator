@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_orchestrator_shared::RecorderResource;
 use opentalk_service_auth::{ApiKeyId, EncodingError};
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
@@ -54,6 +55,14 @@ impl AppState {
         room_id: RoomId,
     ) -> Result<SelectedInstance, InstanceError> {
         self.select_instance(room_id, &self.roomserver_services)
+            .await
+    }
+
+    pub(crate) async fn select_recorder(
+        &self,
+        recording: RecorderResource,
+    ) -> Result<SelectedInstance, InstanceError> {
+        self.select_instance(recording, &self.recorder_services)
             .await
     }
 

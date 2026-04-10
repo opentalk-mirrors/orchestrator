@@ -144,6 +144,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b52af3cb4058c895d37317bb27508dccc8e5f2d39454016b297bf4a400597b8"
 dependencies = [
  "axum-core",
+ "axum-macros",
  "base64",
  "bytes",
  "form_urlencoded",
@@ -190,6 +191,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1555,10 +1567,12 @@ dependencies = [
  "futures-util",
  "jsonwebtoken",
  "opentalk-orchestrator-shared",
+ "opentalk-recorder-web-api",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
  "opentalk-types-api-common",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "reqwest",
  "rustls",
@@ -1603,6 +1617,19 @@ dependencies = [
  "serde",
  "thiserror 2.0.18",
  "url",
+]
+
+[[package]]
+name = "opentalk-recorder-web-api"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5605877703e7e3275a0080b1c8a0af16ead086a9445a99ebb7f4e43fe032feee"
+dependencies = [
+ "async-trait",
+ "axum",
+ "opentalk-types-api-common",
+ "opentalk-types-api-internal",
+ "serde",
 ]
 
 [[package]]
@@ -1679,6 +1706,17 @@ dependencies = [
  "serde_json",
  "snafu 0.9.0",
  "utoipa",
+]
+
+[[package]]
+name = "opentalk-types-api-internal"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f027144dae6561a926c69430e7622ca62bd2fc9cc499abb3bbb12d0d3268366"
+dependencies = [
+ "opentalk-types-common",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
