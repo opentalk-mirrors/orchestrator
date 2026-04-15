@@ -26,7 +26,14 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = []
+ignore = [
+  # No fixed release available for rsa timing sidechannel yet.
+  "RUSTSEC-2023-0071",
+
+  # Name constraints for URI names were incorrectly accepted, waiting for crate updates
+  "RUSTSEC-2026-0098",
+  "RUSTSEC-2026-0099",
+]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.

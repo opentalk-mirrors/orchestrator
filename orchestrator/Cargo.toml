@@ -23,6 +23,7 @@ config.workspace = true
 dirs.workspace = true
 futures-util.workspace = true
 jsonwebtoken = { workspace = true, features = ["aws-lc-rs"] }
+livekit-api.workspace = true
 opentalk-orchestrator-shared = { workspace = true, features = [
   "recording-service",
   "roomserver-service",
@@ -35,7 +36,7 @@ opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
 opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
 opentalk-types-api-internal.workspace = true
 opentalk-types-common.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["stream"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 serde.workspace = true
 serde_json.workspace = true

@@ -25,6 +25,9 @@ dirs = "6.0"
 env = "1.0"
 futures-util = "0.3"
 jsonwebtoken = { version = "10", default-features = false }
+livekit-api = { version = "0.4.14", default-features = false, features = [
+  "access-token",
+] }
 log = "0.4"
 opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.5" }
 opentalk-recorder-web-api = "0.2.0"

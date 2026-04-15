@@ -313,10 +313,12 @@ mod tests {
     use opentalk_types_common::rooms::RoomId;
     use url::Url;
 
-    use crate::{AppState, service_instance::InstanceData};
+    use crate::{AppState, ensure_crypto_provider, service_instance::InstanceData};
 
     #[test_log::test(tokio::test)]
     async fn select_existing_room() {
+        ensure_crypto_provider();
+
         let server_1 = Url::parse("http://0.0.0.1").unwrap();
         let server_2 = Url::parse("http://0.0.0.2").unwrap();
 
