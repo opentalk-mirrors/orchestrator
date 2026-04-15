@@ -37,7 +37,9 @@ use crate::{
 };
 
 mod cli;
+mod livekit;
 mod logging;
+mod proxy;
 mod recorder;
 mod roomserver;
 mod service_instance;
@@ -166,6 +168,7 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
         .route("/metrics", get(metrics))
         .route("/register", any(register))
         .layer(settings.http.api_keys.auth_middleware()?)
+        .nest("/livekit", livekit::routes())
         .nest("/roomserver/v1", roomserver::routes())
         .nest("/recording", opentalk_recorder_web_api::v1::routes())
         .with_state(state)

@@ -141,7 +141,9 @@ mod tests {
     use opentalk_service_auth::service::ApiKeys;
 
     use super::*;
-    use crate::{roomserver::RoomserverInstance, service_instance::InstanceData};
+    use crate::{
+        ensure_crypto_provider, roomserver::RoomserverInstance, service_instance::InstanceData,
+    };
 
     fn roomserver_instance_with_load(load: u8) -> RoomserverInstance {
         RoomserverInstance {
@@ -155,8 +157,11 @@ mod tests {
             },
         }
     }
+
     #[tokio::test]
     async fn select_existing_instance() {
+        ensure_crypto_provider();
+
         let app_state = AppState::new(
             ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
             Url::parse("http://localhost:11222").unwrap(),
@@ -193,6 +198,8 @@ mod tests {
 
     #[tokio::test]
     async fn select_lowest_load_instance() {
+        ensure_crypto_provider();
+
         let app_state = AppState::new(
             ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
             Url::parse("http://localhost:11222").unwrap(),
@@ -226,6 +233,8 @@ mod tests {
 
     #[tokio::test]
     async fn select_instance_not_accepting_jobs() {
+        ensure_crypto_provider();
+
         let app_state = AppState::new(
             ApiKeys::new(vec!["roomserver:secret".parse().unwrap()]),
             Url::parse("http://localhost:11222").unwrap(),
