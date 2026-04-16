@@ -12,7 +12,7 @@ pub use opentalk_orchestrator_shared::{Metrics, RegisterType, ServiceAddress};
 #[cfg(feature = "recording-service")]
 pub use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource, RegisterRecorder};
 #[cfg(feature = "roomserver-service")]
-pub use opentalk_orchestrator_shared::{RegisterRoomServer, RoomServerEvent};
+pub use opentalk_orchestrator_shared::{RegisterRoomserver, RoomserverEvent};
 #[cfg(feature = "transcription-service")]
 pub use opentalk_orchestrator_shared::{RegisterTranscription, TranscriptionEvent};
 
