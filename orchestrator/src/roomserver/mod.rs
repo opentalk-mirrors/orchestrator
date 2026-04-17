@@ -8,7 +8,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use axum::{Router, http::StatusCode};
 use bytes::Bytes;
-use opentalk_orchestrator_shared::RoomServerEvent;
+use opentalk_orchestrator_shared::RoomserverEvent;
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
@@ -46,7 +46,7 @@ pub(crate) struct RoomserverInstance {
 
 #[async_trait::async_trait]
 impl ServiceInstance for RoomserverInstance {
-    type Event = RoomServerEvent;
+    type Event = RoomserverEvent;
     type ManagedResource = RoomId;
 
     fn new(resources: HashSet<Self::ManagedResource>) -> Self {
@@ -74,7 +74,7 @@ impl ServiceInstance for RoomserverInstance {
 
     async fn handle_event(&mut self, event: Self::Event) {
         match event {
-            RoomServerEvent::RemoveRoom(remove_room_id) => {
+            RoomserverEvent::RemoveRoom(remove_room_id) => {
                 self.rooms.retain(|room_id| room_id != &remove_room_id);
             }
         }

@@ -35,7 +35,7 @@ impl TokenExpiry {
     }
 }
 
-/// Manages the active signaling tokens of the RoomServer
+/// Manages the active signaling tokens of the Roomserver
 ///
 /// Expired tokens get cleaned up when the [`TokenStore`] is accessed
 #[derive(Debug)]

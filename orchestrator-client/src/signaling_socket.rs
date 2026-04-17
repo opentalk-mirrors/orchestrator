@@ -7,7 +7,7 @@ use core::fmt::Debug;
 use anyhow::{Context, Result, bail};
 use futures_util::{SinkExt, StreamExt};
 use opentalk_service_auth::EncodingError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
@@ -100,12 +100,10 @@ impl SignalingSocket {
 
     pub(crate) async fn send<P>(&mut self, payload: P) -> Result<()>
     where
-        P: Into<outgoing::Command> + Debug,
+        P: Serialize,
     {
         self.socket()?
-            .send(TtMessage::Text(
-                serde_json::to_string(&payload.into())?.into(),
-            ))
+            .send(TtMessage::Text(serde_json::to_string(&payload)?.into()))
             .await?;
 
         Ok(())
@@ -192,34 +190,4 @@ fn build_websocket_request(
         .insert(SEC_WEBSOCKET_PROTOCOL, ORCHESTRATOR_PROTOCOL_HEADER);
 
     Ok(websocket_request)
-}
-
-pub(crate) mod outgoing {
-    use opentalk_orchestrator_shared::{Event, Metrics, Register};
-    use serde::Serialize;
-
-    #[derive(Debug, Serialize)]
-    #[serde(untagged)]
-    pub(crate) enum Command {
-        Event(Event),
-        Register(Register),
-    }
-
-    impl From<Event> for Command {
-        fn from(event: Event) -> Self {
-            Self::Event(event)
-        }
-    }
-
-    impl From<Metrics> for Command {
-        fn from(metrics: Metrics) -> Self {
-            Self::Event(Event::Metrics(metrics))
-        }
-    }
-
-    impl From<Register> for Command {
-        fn from(register: Register) -> Self {
-            Self::Register(register)
-        }
-    }
 }

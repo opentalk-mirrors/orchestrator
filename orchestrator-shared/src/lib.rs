@@ -2,92 +2,27 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_service_auth::ApiKeyId;
 use serde::{Deserialize, Serialize};
 pub use url::Url;
 
-use crate::error::RegistrationError;
 #[cfg(feature = "recording-service")]
-pub use crate::recorder::{RecorderEvent, RecorderResource, RegisterRecorder};
+pub use crate::services::recorder::{RecorderEvent, RecorderResource, RegisterRecorder};
 #[cfg(feature = "roomserver-service")]
-pub use crate::roomserver::{RegisterRoomServer, RoomServerEvent};
+pub use crate::services::roomserver::{RegisterRoomserver, RoomserverEvent};
 #[cfg(feature = "transcription-service")]
-pub use crate::transcription::{RegisterTranscription, TranscriptionEvent};
+pub use crate::services::transcription::{RegisterTranscription, TranscriptionEvent};
+pub use crate::{
+    event::Event,
+    register::{Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress},
+};
 
 pub mod error;
+mod event;
+mod register;
+mod services;
 
-#[cfg(feature = "recording-service")]
-mod recorder;
-#[cfg(feature = "roomserver-service")]
-mod roomserver;
-#[cfg(feature = "transcription-service")]
-mod transcription;
-
-/// The server response to the [`Register`] request
-#[derive(Debug, Serialize, Deserialize)]
-pub enum RegisterResponse {
-    Success,
-    Error(RegistrationError),
-}
-
-impl From<RegistrationError> for RegisterResponse {
-    fn from(error: RegistrationError) -> Self {
-        Self::Error(error)
-    }
-}
-
-/// Request to register at the orchestrator
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Register {
-    pub register_data: RegisterData,
-    /// The type of service
-    pub register_type: RegisterType,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegisterData {
-    /// The address of the service
-    pub service_address: ServiceAddress,
-    /// A list of api key ids to that authorize requests to the service
-    pub api_key_ids: Vec<ApiKeyId>,
-    /// The initial metrics
-    pub metrics: Metrics,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ServiceAddress {
-    /// The service provided a full URL as its address
-    Url(Url),
-    /// The service only provided a port, so the orchestrator should use the client's IP address
-    /// (received on registration) and the provided port to build the URL
-    Port(u16),
-}
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Metrics {
     pub load: u8,
     pub accepting_jobs: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum RegisterType {
-    #[cfg(feature = "recording-service")]
-    Recorder(RegisterRecorder),
-    #[cfg(feature = "roomserver-service")]
-    RoomServer(RegisterRoomServer),
-    #[cfg(feature = "transcription-service")]
-    Transcription(RegisterTranscription),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum Event {
-    Metrics(Metrics),
-    #[cfg(feature = "recording-service")]
-    Recorder(RecorderEvent),
-    #[cfg(feature = "roomserver-service")]
-    RoomServer(RoomServerEvent),
-    #[cfg(feature = "transcription-service")]
-    Transcription(TranscriptionEvent),
 }

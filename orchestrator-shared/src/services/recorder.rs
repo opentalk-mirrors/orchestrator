@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::Event;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub struct RegisterRecorder {
     pub rooms: HashSet<RecorderResource>,
 }
@@ -20,7 +21,8 @@ pub struct RecorderResource {
     pub breakout_id: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum RecorderEvent {
     RemoveRecording(RecorderResource),
 }

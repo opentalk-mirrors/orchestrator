@@ -100,7 +100,7 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
                 .run_recorder_instance(socket, service_registration, service_data.rooms)
                 .await;
         }
-        RegisterType::RoomServer(service_data) => {
+        RegisterType::Roomserver(service_data) => {
             state
                 .run_roomserver_instance(socket, service_registration, service_data.rooms)
                 .await;
