@@ -2102,6 +2102,7 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 name = "opentalk-orchestrator"
 version = "0.6.0"
 dependencies = [
+ "anstream",
  "anyhow",
  "async-trait",
  "axum",
@@ -2120,9 +2121,11 @@ dependencies = [
  "opentalk-types-api-common",
  "opentalk-types-api-internal",
  "opentalk-types-common",
+ "owo-colors",
  "reqwest 0.13.2",
  "rustls 0.23.38",
  "serde",
+ "serde_ignored",
  "serde_json",
  "serde_path_to_error",
  "service-probe",
@@ -2373,6 +2376,12 @@ dependencies = [
  "serde",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d211803b9b6b570f68772237e415a029d5a50c65d382910b879fb19d3271f94d"
 
 [[package]]
 name = "p256"
@@ -3395,6 +3404,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_ignored"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115dffd5f3853e06e746965a20dcbae6ee747ae30b543d91b0e089668bb07798"
+dependencies = [
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
