@@ -39,7 +39,7 @@ opentalk-types-api-internal = "0.2"
 opentalk-types-api-v1 = { version = "0.58", default-features = false, features = [
   "http",
 ] }
-opentalk-types-common = { version = "0.43", default-features = false, features = [
+opentalk-types-common = { version = "0.44", default-features = false, features = [
   "serde",
 ] }
 owo-colors = "4.3.0"
