@@ -57,7 +57,23 @@ impl Settings {
             .build()
             .context("failed to build settings loader")?;
 
-        Ok(serde_path_to_error::deserialize(config).context("invalid configuration")?)
+        let mut warn_unknown_key = Self::warn_unused_key;
+        let ignored_deserializer = serde_ignored::Deserializer::new(config, &mut warn_unknown_key);
+        let settings = serde_path_to_error::deserialize(ignored_deserializer)
+            .context("invalid configuration")?;
+
+        Ok(settings)
+    }
+
+    fn warn_unused_key(path: serde_ignored::Path) {
+        // Be aware that this might get called before the logger is initialized. Don't use
+        // tracing/log crates.
+        use owo_colors::OwoColorize as _;
+        anstream::eprintln!(
+            "{}: Unknown configuration key {}",
+            "WARNING".yellow().bold(),
+            path.bold(),
+        );
     }
 
     /// Creates a new Settings instance from the provided TOML file if provided
