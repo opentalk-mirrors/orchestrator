@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-04-24
+
+[0.7.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.5.0...v0.7.0
+
+### 🚀 New features
+
+- (orchestrator) Add recorder service backend ([!120](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/120))
+- Add livekit proxy endpoints ([!111](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/111), [#26](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/26))
+- Warn about unknown configuration fields ([!138](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/138))
+
+### 🔨 Refactor
+
+- (client) Restructure signaling types and add tests ([!130](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/130), [#19](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/19))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate tokio to v1.51.1 ([!119](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/119))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.1 ([!116](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/116))
+- (deps) Lock file maintenance ([!124](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/124))
+- (deps) Update opentalk ([!125](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/125))
+- (deps) Update rust crate axum to v0.8.9 ([!126](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/126))
+- (deps) Update rust crate tokio to v1.52.0 ([!128](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/128))
+- (deps) Lock file maintenance ([!133](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/133))
+- (deps) Update opentalk ([!127](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/127))
+- (deps) Update opentalk ([!140](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/140))
+
 ## [0.6.0] - 2026-04-22
 
 [0.6.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.5.0...v0.6.0
