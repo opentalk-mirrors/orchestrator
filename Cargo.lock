@@ -2243,13 +2243,17 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.35"
+version = "0.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f46da8c93ec190cf9e33f32f43cd69f5abe88087a690435c060ab54a4bb1b87b"
+checksum = "6d8bbb0e734be176da9edf8132e4a724417e28ed53ada9e9e3df0a1d87ec409d"
 dependencies = [
  "anyhow",
+ "axum",
+ "bytes",
  "chrono",
  "derive_more",
+ "futures",
+ "http 1.4.0",
  "icu_locid",
  "opentalk-types-api-internal",
  "opentalk-types-common",
@@ -2257,6 +2261,9 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio",
+ "tokio-tungstenite 0.29.0",
+ "tokio-util",
  "url",
  "utoipa",
  "uuid",
@@ -2264,14 +2271,12 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.35"
+version = "0.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d21de797ea4781066bd06581abcfdcf340797756e49dd82292b49e2a119f427"
+checksum = "86627a3079c809690ce1c80edd820b63c3605cfc185fbd4795a45a386cb1d39d"
 dependencies = [
  "async-trait",
  "axum",
- "bytes",
- "futures",
  "jsonwebtoken",
  "livekit-api",
  "opentalk-roomserver-types",
@@ -2280,8 +2285,6 @@ dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
- "thiserror 2.0.18",
- "tokio-util",
  "tower-http",
  "tracing",
  "utoipa",
