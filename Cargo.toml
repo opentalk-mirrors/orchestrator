@@ -31,8 +31,8 @@ livekit-api = { version = "0.4.14", default-features = false, features = [
 log = "0.4"
 opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.7" }
 opentalk-recorder-web-api = "0.2.0"
-opentalk-roomserver-types = "0.0.36"
-opentalk-roomserver-web-api = "0.0.36"
+opentalk-roomserver-types = "0.0.38"
+opentalk-roomserver-web-api = "0.0.38"
 opentalk-service-auth = { version = "0.2.3", default-features = false }
 opentalk-types-api-common = "0.7.0"
 opentalk-types-api-internal = "0.2.2"
