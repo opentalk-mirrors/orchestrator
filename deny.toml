@@ -29,21 +29,6 @@ yanked = "deny"
 ignore = [
   # No fixed release available for rsa timing sidechannel yet.
   "RUSTSEC-2023-0071",
-
-  # rustls-pemfile is unmaintained
-  "RUSTSEC-2025-0134",
-
-  # rustls-webpki 0.101.7
-  #
-  # This version of the rustls-webpki crate is pulled in as a transitive dependency of livekit-api, and so far
-  # no updated version which matches the compatible range is available, so we have to wait until the dependency
-  # tree of livekit-api becomes compatible / updated.
-  "RUSTSEC-2026-0104",
-
-
-  # Name constraints for URI names were incorrectly accepted, waiting for crate updates
-  "RUSTSEC-2026-0098",
-  "RUSTSEC-2026-0099",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -101,6 +86,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-service-auth" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-transcription-web-api" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },

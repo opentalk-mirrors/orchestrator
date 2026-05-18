@@ -14,7 +14,9 @@ pub use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource, Register
 #[cfg(feature = "roomserver-service")]
 pub use opentalk_orchestrator_shared::{RegisterRoomserver, RoomserverEvent};
 #[cfg(feature = "transcription-service")]
-pub use opentalk_orchestrator_shared::{RegisterTranscription, TranscriptionEvent};
+pub use opentalk_orchestrator_shared::{
+    RegisterTranscription, TranscriptionEvent, TranscriptionResource,
+};
 
 #[cfg(not(any(
     feature = "recording-service",

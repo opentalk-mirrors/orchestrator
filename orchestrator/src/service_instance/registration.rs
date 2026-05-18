@@ -13,7 +13,7 @@ use anyhow::{Context, Result, bail};
 use axum::extract::ws::{CloseFrame, Message, WebSocket, close_code};
 use opentalk_orchestrator_shared::{
     Metrics, RecorderResource, Register, RegisterResponse, RegisterType, ServiceAddress,
-    error::RegistrationError,
+    TranscriptionResource, error::RegistrationError,
 };
 use opentalk_service_auth::ApiKeyId;
 use opentalk_types_common::rooms::RoomId;
@@ -105,8 +105,10 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
                 .run_roomserver_instance(socket, service_registration, service_data.rooms)
                 .await;
         }
-        RegisterType::Transcription(_service_data) => {
-            todo!()
+        RegisterType::Transcription(service_data) => {
+            state
+                .run_transcription_instance(socket, service_registration, service_data.rooms)
+                .await;
         }
     };
 }
@@ -222,6 +224,47 @@ impl AppState {
             }
             Err(err) => {
                 tracing::error!("unexpected disconnect from recorder ({address}): {err:?}");
+            }
+        }
+    }
+
+    /// Register and run a new transcription instance
+    async fn run_transcription_instance(
+        &self,
+        socket: WebSocket,
+        registration: ServiceRegistration,
+        rooms: HashSet<TranscriptionResource>,
+    ) {
+        let address = registration.address.clone();
+
+        let runner = match self
+            .create_instance_runner(
+                socket,
+                registration,
+                rooms,
+                Arc::clone(&self.transcription_services),
+            )
+            .await
+        {
+            Ok(runner) => runner,
+            Err(err) => {
+                tracing::error!("failed to transcription service ({address}): {err:?}");
+                return;
+            }
+        };
+
+        tracing::info!("successfully registered transcription service ({address})");
+
+        match runner.run().await {
+            Ok(()) => {
+                tracing::info!(
+                    "disconnected from transcription service ({address}), connection closed by service"
+                );
+            }
+            Err(err) => {
+                tracing::error!(
+                    "unexpected disconnect from transcription service ({address}): {err:?}"
+                );
             }
         }
     }

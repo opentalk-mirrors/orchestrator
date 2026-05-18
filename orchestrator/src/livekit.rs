@@ -151,7 +151,7 @@ async fn signaling(
     let (roomserver_livekit_proxy, _) = tokio_tungstenite::connect_async(url.as_str())
         .await
         .map_err(|e| {
-            tracing::error!("failed to connect to roomserver livekit proxy: {e}");
+            tracing::error!("failed to connect to roomserver livekit proxy at {url}: {e}",);
 
             ApiError::internal()
                 .with_message(format!("failed to connect to roomserver instance: {e}"))

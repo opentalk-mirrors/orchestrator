@@ -107,7 +107,7 @@ impl<T: ServiceInstance> InstanceRunner<T> {
             Message::Text(utf8_bytes) => {
                 serde_json::from_str(utf8_bytes.as_str()).with_context(|| {
                     format!(
-                        "failed to parse message for connection '{}'",
+                        "failed to parse message for connection '{}':\n{utf8_bytes}",
                         self.client_address
                     )
                 })?

@@ -171,6 +171,10 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
         .nest("/livekit", livekit::routes())
         .nest("/roomserver/v1", roomserver::routes())
         .nest("/recording", opentalk_recorder_web_api::v1::routes())
+        .nest(
+            "/transcription",
+            opentalk_transcription_web_api::v1::routes(),
+        )
         .with_state(state)
         .fallback(not_found_handler)
         .into_make_service_with_connect_info::<SocketAddr>();

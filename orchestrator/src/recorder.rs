@@ -73,7 +73,7 @@ impl RecorderBackend for AppState {
         } = self.select_recorder(recorder_resource).await?;
 
         let url = address
-            .join("/v1/init")
+            .join("v1/init")
             .map_err(|_| ApiError::internal().with_message("Failed to construct recorder URL"))?;
 
         let response = self
