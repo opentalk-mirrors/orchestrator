@@ -199,7 +199,7 @@ impl OrchestratorClient {
         loop {
             tokio::select! {
                 _ = interval.tick() => {
-                    socket.send(state_provider.metrics().await).await?;
+                    socket.send(Event::Metrics(state_provider.metrics().await)).await?;
                 }
                 data = self.event_receiver.recv() => {
                     match data {
