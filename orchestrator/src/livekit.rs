@@ -72,7 +72,7 @@ async fn forward_validate_request(
     drop(roomserver_instances);
 
     let mut url = url
-        .join("v1/livekit/rtc/validate")
+        .join("livekit/rtc/validate")
         .context("Failed to build livekit validate url")?;
 
     tracing::debug!("Forwarding livekit validate request for room {room_id}to roomserver at {url}");
@@ -139,7 +139,7 @@ async fn signaling(
         }
     }
 
-    let mut url = url.join("v1/livekit/rtc").map_err(|e| {
+    let mut url = url.join("livekit/rtc").map_err(|e| {
         tracing::error!("failed to build livekit url: {e}");
         ApiError::internal()
     })?;
