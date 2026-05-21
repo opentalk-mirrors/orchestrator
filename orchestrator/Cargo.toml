@@ -5,7 +5,7 @@
 [package]
 name = "opentalk-orchestrator"
 description = "OpenTalk Orchestrator Service"
-version = "0.7.0"
+version = "0.8.0"
 publish = false
 authors.workspace = true
 edition.workspace = true

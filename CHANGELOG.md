@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-05-21
+
+[0.8.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.7.0...v0.8.0
+
+### 🚀 New features
+
+- (transcription) Integrate the transcription service ([!134](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/134), [#7](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/7))
+
+### 🐛 Bug fixes
+
+- (client) Use event type when sending metrics ([!157](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/157))
+- (livekit-proxy) Remove 'v1' version prefix for roomserver livekit endpoints ([!157](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/157))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!144](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/144), [!151](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/151), [!156](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/156))
+- (deps) Update rust crate tokio to v1.52.2 ([!147](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/147))
+- (deps) Update opentalk to 0.0.39 ([!155](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/155))
+
 ## [0.7.0] - 2026-04-24
 
 [0.7.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.5.0...v0.7.0
