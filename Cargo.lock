@@ -2204,9 +2204,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.38"
+version = "0.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75ac60ec8821544535b2a8d47462a2061866921b56daa8bc766d75fb8d6814aa"
+checksum = "b2b60c7c7a94e222078e9e9898c310489b1274baf38f93a166025ba80d97e335"
 dependencies = [
  "anyhow",
  "axum",
@@ -2232,9 +2232,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.38"
+version = "0.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "812cf3b633bd90b090b60289b9c478ee5a78832845e199366fbd885531900cda"
+checksum = "57b412b232f0338e97547d1d3c928de0e57d26647df9f1e81c8fca120990bd4d"
 dependencies = [
  "async-trait",
  "axum",
@@ -2245,6 +2245,7 @@ dependencies = [
  "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "reqwest 0.13.3",
  "serde",
  "tower-http",
  "tracing",
@@ -3027,8 +3028,10 @@ checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-core",
  "futures-util",
+ "h2",
  "http",
  "http-body",
  "http-body-util",
@@ -3037,6 +3040,7 @@ dependencies = [
  "hyper-util",
  "js-sys",
  "log",
+ "mime",
  "percent-encoding",
  "pin-project-lite",
  "quinn",
