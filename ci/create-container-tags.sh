@@ -34,13 +34,23 @@ is_latest() {
 }
 
 create_tags() {
-    local tag all_tags flavor default_flavor tags
-    tag=${1//v/}
+    local ref all_tags flavor default_flavor tag tags rb_major rb_minor
+    ref=$1
     all_tags=${2//v/}
     flavor=$3
     default_flavor=$4
 
-    if [ "$tag" = "main" ]; then
+    # Release branches like `release/v0.33.x` produce `v0.33-dev` images.
+    if [[ "$ref" =~ ^release/v([0-9]+)\.([0-9]+)\.x$ ]]; then
+        rb_major=${BASH_REMATCH[1]}
+        rb_minor=${BASH_REMATCH[2]}
+        tags=("v${rb_major}.${rb_minor}-dev-$flavor")
+        [ "$flavor" = "$default_flavor" ] && tags+=("v${rb_major}.${rb_minor}-dev")
+        echo "${tags[*]}"
+        return
+    fi
+
+    if [ "$ref" = "main" ]; then
         tags=()
         tags+=("dev-$flavor")
         [ "$flavor" = "$default_flavor" ] && tags+=("dev")
@@ -48,6 +58,7 @@ create_tags() {
         return
     fi
 
+    tag=${ref//v/}
     IFS='.' read -r major minor patch <<< "$tag"
 
     if [[ "$patch" =~ [a-zA-Z].* ]]; then
