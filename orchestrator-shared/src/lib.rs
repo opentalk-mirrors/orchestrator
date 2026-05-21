@@ -10,7 +10,9 @@ pub use crate::services::recorder::{RecorderEvent, RecorderResource, RegisterRec
 #[cfg(feature = "roomserver-service")]
 pub use crate::services::roomserver::{RegisterRoomserver, RoomserverEvent};
 #[cfg(feature = "transcription-service")]
-pub use crate::services::transcription::{RegisterTranscription, TranscriptionEvent};
+pub use crate::services::transcription::{
+    RegisterTranscription, TranscriptionEvent, TranscriptionResource,
+};
 pub use crate::{
     event::Event,
     register::{Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress},

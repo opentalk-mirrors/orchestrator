@@ -9,16 +9,23 @@ use serde::{Deserialize, Serialize};
 
 use crate::Event;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct RegisterTranscription {
-    pub rooms: HashSet<RoomId>,
+    pub rooms: HashSet<TranscriptionResource>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub struct TranscriptionResource {
+    pub room_id: RoomId,
+    pub breakout_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TranscriptionEvent {
-    RemoveRoom(RoomId),
+    RemoveTranscription(TranscriptionResource),
 }
 
 impl From<TranscriptionEvent> for Event {

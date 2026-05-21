@@ -30,7 +30,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::RecorderResource;
+    use crate::{RecorderResource, TranscriptionResource};
 
     #[test]
     fn serialize_event_metrics() {
@@ -144,14 +144,22 @@ mod tests {
 
     #[test]
     fn serialize_event_transcription() {
-        let event = Event::Transcription(TranscriptionEvent::RemoveRoom(RoomId::nil()));
+        let event = Event::Transcription(TranscriptionEvent::RemoveTranscription(
+            TranscriptionResource {
+                room_id: RoomId::nil(),
+                breakout_id: Some(1),
+            },
+        ));
 
         let serialized = serde_json::to_value(&event).unwrap();
 
         assert_eq!(
             json!({
                 "type": "transcription",
-                "remove_room": RoomId::nil()
+                "remove_transcription": {
+                    "room_id": RoomId::nil(),
+                    "breakout_id": 1
+                }
             }),
             serialized
         );
@@ -161,13 +169,21 @@ mod tests {
     fn deserialize_event_transcription() {
         let json = json!({
             "type": "transcription",
-            "remove_room": RoomId::nil()
+            "remove_transcription": {
+                "room_id": RoomId::nil(),
+                "breakout_id": null
+            }
         });
 
         let deserialized: Event = serde_json::from_value(json).unwrap();
 
         assert_eq!(
-            Event::Transcription(TranscriptionEvent::RemoveRoom(RoomId::nil())),
+            Event::Transcription(TranscriptionEvent::RemoveTranscription(
+                TranscriptionResource {
+                    room_id: RoomId::nil(),
+                    breakout_id: None,
+                },
+            )),
             deserialized
         );
     }
