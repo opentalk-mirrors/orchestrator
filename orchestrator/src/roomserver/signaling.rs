@@ -8,6 +8,7 @@ use axum::{
     response::Response,
     routing::any,
 };
+use opentalk_orchestrator_shared::services::ServiceResource;
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::roomserver::Token;
 
@@ -28,19 +29,21 @@ pub async fn roomserver_signaling(
     };
     drop(token_store);
 
-    let roomserver_instances = state.roomserver_services.read().await;
-    let url = roomserver_instances
-        .iter()
-        .find_map(|(url, instance)| instance.rooms.contains(&room).then(|| url.clone()))
-        .ok_or_else(|| {
-            tracing::error!(
-                "Received valid roomserver token {token} but could not find associated roomserver for room {room}"
-            );
+    let Some((url, _)) = state
+        .storage
+        .get_instances_for_resource(&ServiceResource::Roomserver(room))
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get roomserver instance: {e:?}");
+            ApiError::internal().with_message("Failed to get roomserver instance for room")
+        })?
+    else {
+        tracing::error!(
+            "Received valid roomserver token {token} but could not find associated roomserver for room {room}"
+        );
 
-            ApiError::internal()
-        })?;
-
-    drop(roomserver_instances);
+        return Err(ApiError::internal());
+    };
 
     let signaling_path = format!("/v1/signaling/{token}");
     let mut signaling_url = match url.join(&signaling_path) {

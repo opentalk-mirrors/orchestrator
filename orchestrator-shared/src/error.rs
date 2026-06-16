@@ -12,6 +12,8 @@ pub enum RegistrationError {
     AddressAlreadyInUse,
     #[error("the provided service address or port is invalid")]
     InvalidServiceAddress,
+    #[error("one or more of the provided resources are managed by other instances already")]
+    ResourceAlreadyExists,
     #[error("unknown api key ids")]
     UnknownApiKeyIds,
     #[error("failed to receive registration message within timeout")]
@@ -20,6 +22,8 @@ pub enum RegistrationError {
     InvalidMessageType,
     #[error("failed to parse registration message")]
     InvalidJson,
+    #[error("internal error while attempting to register service")]
+    Internal,
 }
 
 /// Event related errors that can occur when sending events to the orchestrator

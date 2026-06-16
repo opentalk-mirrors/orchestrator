@@ -2,62 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::HashSet;
-
 use async_trait::async_trait;
-use opentalk_orchestrator_shared::{TranscriptionEvent, TranscriptionResource};
+use opentalk_orchestrator_shared::TranscriptionResource;
 use opentalk_transcription_web_api::v1::{TranscriptionBackend, TranscriptionTarget};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use reqwest::header::AUTHORIZATION;
-use serde::Serialize;
 
-use crate::{
-    AppState,
-    service_instance::{InstanceData, ServiceInstance, selection::SelectedInstance},
-};
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct TranscriptionInstance {
-    pub transcriptions: HashSet<TranscriptionResource>,
-    pub data: InstanceData,
-}
-
-#[async_trait::async_trait]
-impl ServiceInstance for TranscriptionInstance {
-    type Event = TranscriptionEvent;
-    type ManagedResource = TranscriptionResource;
-
-    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
-        Self {
-            transcriptions: resources,
-            data: InstanceData::default(),
-        }
-    }
-
-    fn manages(&self, resource: &Self::ManagedResource) -> bool {
-        self.transcriptions.contains(resource)
-    }
-
-    fn add_managed_resource(&mut self, resource: Self::ManagedResource) {
-        self.transcriptions.insert(resource);
-    }
-
-    async fn handle_event(&mut self, event: Self::Event) {
-        match event {
-            TranscriptionEvent::RemoveTranscription(resource) => {
-                self.transcriptions.remove(&resource);
-            }
-        }
-    }
-
-    fn instance_data(&self) -> &InstanceData {
-        &self.data
-    }
-
-    fn instance_data_mut(&mut self) -> &mut InstanceData {
-        &mut self.data
-    }
-}
+use crate::{AppState, service_instance::selection::SelectedInstance};
 
 #[async_trait]
 impl TranscriptionBackend for AppState {
@@ -70,9 +21,7 @@ impl TranscriptionBackend for AppState {
         let SelectedInstance {
             address,
             auth_header,
-        } = self
-            .select_transcription(transcription_resource.clone())
-            .await?;
+        } = self.select_transcription(transcription_resource).await?;
 
         let url = address.join("v1/init").map_err(|_| {
             ApiError::internal().with_message("Failed to construct transcription URL")

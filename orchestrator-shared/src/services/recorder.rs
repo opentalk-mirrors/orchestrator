@@ -9,16 +9,29 @@ use serde::{Deserialize, Serialize};
 
 use crate::Event;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct RegisterRecorder {
     pub rooms: HashSet<RecorderResource>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Hash, Eq)]
 pub struct RecorderResource {
     pub room_id: RoomId,
     pub breakout_id: Option<u32>,
+}
+
+impl super::ResourceType for RecorderResource {
+    fn kind() -> crate::ServiceKind {
+        crate::ServiceKind::Recorder
+    }
+
+    fn from_service_resource(resource: super::ServiceResource) -> Option<Self> {
+        match resource {
+            super::ServiceResource::Recorder(r) => Some(r),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]

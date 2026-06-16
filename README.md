@@ -21,7 +21,7 @@ web APIs of orchestrated services and forwards requests towards the appropriate 
 | ------------- | --------------------- |
 | Roomserver    | `/roomserver/`        |
 | Recorder      | `/recording/`         |
-| Transcription | `todo`                |
+| Transcription | `/transcription/`     |
 
 ## How it works
 
@@ -55,7 +55,7 @@ Neither the client nor the roomserver need a any configuration for this. When a 
 roomserver through the orchestrator, the orchestrator injects its signaling URL as `public_url` into the roomservers
 `RoomServerAccess` response.
 
-## Configuration
+## Deployment Configuration
 
 Each orchestrated service has an `orchestrator` section in their respective config that must be configured to point to
 the orchestrator of that deployment.
@@ -67,3 +67,45 @@ registration declined.
 When configuring the controller, each service configuration should point to the respective orchestrator endpoint of that
 service. For example, use orchestrators roomserver url (`<orchestrator_url>/roomserver`) as url for the controllers
 roomserver configuration.
+
+## Cluster setup
+
+The orchestrator can scale horizontally by running multiple instances behind a load balancer. Some considerations
+must be taken into account when running an orchestrators in a cluster.
+
+### Load balancing
+
+When running a cluster of orchestrators, an external load balancer must be configured to distribute requests to the
+orchestrator instances. The load balancer must include WebSocket upgrade headers and proxy forwarding headers.
+
+### Storage configuration
+
+The orchestrator storage must be configured to use `Redis` as a backend:
+
+```toml
+[storage]
+kind = "redis"
+url = "redis://localhost:6379"
+```
+
+Redis needs to support `RESP3` protocol, so a minimum version of `7.0` is required.
+
+The orchestrator does NOT support redis clusters due to limitations with scripts and notifications. This may change in
+the future, but for now, only single redis instances are supported.
+
+### Service API keys
+
+All orchestrators in a cluster MUST have the same service API keys configured in order to allow services to register at
+any orchestrator instance:
+
+```toml
+[services]
+keys = [
+    { id = "roomserver", secret = "secret" },           # ┐
+    { id = "recorder", secret = "secret" },             # ├── These need to be the same for all orchestrator instances
+    { id = "transcription", secret = "super_secret" },  # ┘
+]
+```
+
+Missing or conflicting API keys will result in services not being able to consistently register at the orchestrator
+cluster, leading to occasional errors in registration requests and services.

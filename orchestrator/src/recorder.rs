@@ -2,62 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::HashSet;
-
-use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource};
+use opentalk_orchestrator_shared::RecorderResource;
 use opentalk_recorder_web_api::v1::{RecorderBackend, RecordingAction};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_api_internal::recording::RecordingTarget;
 use reqwest::{StatusCode, header::AUTHORIZATION};
-use serde::Serialize;
 
-use crate::{
-    AppState,
-    service_instance::{InstanceData, ServiceInstance, selection::SelectedInstance},
-};
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct RecorderInstance {
-    rooms: HashSet<RecorderResource>,
-    data: InstanceData,
-}
-
-#[async_trait::async_trait]
-impl ServiceInstance for RecorderInstance {
-    type Event = RecorderEvent;
-    type ManagedResource = RecorderResource;
-
-    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
-        Self {
-            rooms: resources,
-            data: InstanceData::default(),
-        }
-    }
-
-    fn manages(&self, resource: &Self::ManagedResource) -> bool {
-        self.rooms.contains(resource)
-    }
-
-    fn add_managed_resource(&mut self, resource: Self::ManagedResource) {
-        self.rooms.insert(resource);
-    }
-
-    async fn handle_event(&mut self, event: Self::Event) {
-        match event {
-            RecorderEvent::RemoveRecording(resource) => {
-                self.rooms.remove(&resource);
-            }
-        }
-    }
-
-    fn instance_data(&self) -> &InstanceData {
-        &self.data
-    }
-
-    fn instance_data_mut(&mut self) -> &mut InstanceData {
-        &mut self.data
-    }
-}
+use crate::{AppState, service_instance::selection::SelectedInstance};
 
 #[async_trait::async_trait]
 impl RecorderBackend for AppState {

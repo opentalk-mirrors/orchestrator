@@ -68,6 +68,8 @@ include:
 
 test:cargo_test:
   stage: test
+  tags:
+    - testcontainers
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"

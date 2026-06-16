@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::HashSet;
-
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::{Router, http::StatusCode};
 use bytes::Bytes;
-use opentalk_orchestrator_shared::RoomserverEvent;
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
@@ -19,14 +16,11 @@ use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend, rooms};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_common::rooms::RoomId;
 use reqwest::header::AUTHORIZATION;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
     AppState,
-    service_instance::{
-        InstanceData, ServiceInstance,
-        selection::{InstanceError, SelectedInstance},
-    },
+    service_instance::selection::{InstanceError, SelectedInstance},
 };
 
 pub mod signaling;
@@ -36,49 +30,6 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(signaling::routes())
         .merge(rooms::routes())
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct RoomserverInstance {
-    pub rooms: HashSet<RoomId>,
-    pub data: InstanceData,
-}
-
-#[async_trait::async_trait]
-impl ServiceInstance for RoomserverInstance {
-    type Event = RoomserverEvent;
-    type ManagedResource = RoomId;
-
-    fn new(resources: HashSet<Self::ManagedResource>) -> Self {
-        Self {
-            rooms: resources,
-            data: InstanceData::default(),
-        }
-    }
-
-    fn manages(&self, resource: &Self::ManagedResource) -> bool {
-        self.rooms.contains(resource)
-    }
-
-    fn add_managed_resource(&mut self, managed_data: Self::ManagedResource) {
-        self.rooms.insert(managed_data);
-    }
-
-    fn instance_data(&self) -> &InstanceData {
-        &self.data
-    }
-
-    fn instance_data_mut(&mut self) -> &mut InstanceData {
-        &mut self.data
-    }
-
-    async fn handle_event(&mut self, event: Self::Event) {
-        match event {
-            RoomserverEvent::RemoveRoom(remove_room_id) => {
-                self.rooms.retain(|room_id| room_id != &remove_room_id);
-            }
-        }
-    }
 }
 
 #[async_trait]
@@ -328,85 +279,5 @@ fn deserialize_token_response<T: for<'a> Deserialize<'a>>(
             );
             Err(ApiError::internal().with_message("Unexpected roomserver response body"))
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-
-    use opentalk_orchestrator_shared::Metrics;
-    use opentalk_service_auth::{ApiKey, service::ApiKeys};
-    use opentalk_types_common::rooms::RoomId;
-    use url::Url;
-
-    use crate::{AppState, ensure_crypto_provider, service_instance::InstanceData};
-
-    #[test_log::test(tokio::test)]
-    async fn select_existing_room() {
-        ensure_crypto_provider();
-
-        let server_1 = Url::parse("http://0.0.0.1").unwrap();
-        let server_2 = Url::parse("http://0.0.0.2").unwrap();
-
-        const ROOM_1: RoomId = RoomId::from_u128(1);
-        const ROOM_2: RoomId = RoomId::from_u128(2);
-        const ROOM_3: RoomId = RoomId::from_u128(3);
-
-        let roomserver_api_key = ApiKey::new("roomserver", "secret123");
-
-        let app_state = AppState::new(
-            ApiKeys::new(vec![roomserver_api_key]),
-            Url::parse("http://localhost:11222").unwrap(),
-        );
-        let mut roomservers = app_state.roomserver_services.write().await;
-
-        let mut rooms = HashSet::default();
-        rooms.insert(ROOM_1);
-
-        roomservers.insert(
-            server_1.clone(),
-            super::RoomserverInstance {
-                rooms,
-                data: InstanceData {
-                    metrics: Metrics {
-                        load: 80,
-                        accepting_jobs: true,
-                    },
-
-                    api_key_ids: vec!["roomserver".into()],
-                },
-            },
-        );
-
-        let mut rooms = HashSet::default();
-        rooms.insert(ROOM_2);
-        rooms.insert(ROOM_3);
-
-        roomservers.insert(
-            server_2.clone(),
-            super::RoomserverInstance {
-                rooms,
-                data: InstanceData {
-                    metrics: Metrics {
-                        load: 20,
-                        accepting_jobs: true,
-                    },
-
-                    api_key_ids: vec!["roomserver".into()],
-                },
-            },
-        );
-
-        drop(roomservers);
-
-        let server = app_state.select_roomserver(ROOM_1).await.unwrap().address;
-        assert_eq!(server, server_1.clone());
-
-        let server = app_state.select_roomserver(ROOM_2).await.unwrap().address;
-        assert_eq!(server, server_2.clone());
-
-        let server = app_state.select_roomserver(ROOM_3).await.unwrap().address;
-        assert_eq!(server, server_2.clone());
     }
 }

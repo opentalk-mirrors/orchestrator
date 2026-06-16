@@ -10,12 +10,13 @@ use http::Http;
 use serde::Deserialize;
 use services::Services;
 
-use crate::settings::{logging::Logging, monitoring::Monitoring};
+use crate::settings::{logging::Logging, monitoring::Monitoring, storage::Storage};
 
 pub mod http;
 pub mod logging;
 pub mod monitoring;
 pub mod services;
+pub mod storage;
 
 #[derive(Debug, thiserror::Error)]
 #[error("Settings error")]
@@ -36,6 +37,8 @@ pub struct Settings {
 
     /// Configuration related to services that the orchestrator connects to
     pub services: Services,
+
+    pub storage: Storage,
 }
 
 impl Settings {

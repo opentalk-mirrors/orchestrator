@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Event;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct RegisterRoomserver {
     pub rooms: HashSet<RoomId>,
