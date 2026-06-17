@@ -1757,6 +1757,29 @@ version = "0.4.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2611299f65786fa733f38ef9aab9d796679e6f2f77572b84170949769ca9a25"
 dependencies = [
+ "device-info",
+ "http",
+ "jsonwebtoken",
+ "livekit-protocol",
+ "log",
+ "os_info",
+ "parking_lot",
+ "pbjson-types",
+ "prost",
+ "rand 0.9.4",
+ "scopeguard",
+ "serde",
+ "sha2",
+ "thiserror 2.0.18",
+ "url",
+]
+
+[[package]]
+name = "livekit-api"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8f76e6ea32cb42105951721efc633644d2733aeadf023e862c5a294f652330e"
+dependencies = [
  "base64 0.21.7",
  "device-info",
  "http",
@@ -1782,9 +1805,9 @@ dependencies = [
 
 [[package]]
 name = "livekit-protocol"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd59f3759f1a14e60b6bc6d4d415414e1aed686c8e4d2c7862542d95301cdc70"
+checksum = "565d83442aa99684dba5d0841fa342eb572fbd916ba2aa5e92801ecf76620026"
 dependencies = [
  "pbjson",
  "pbjson-types",
@@ -2131,7 +2154,7 @@ dependencies = [
  "dirs",
  "futures-util",
  "jsonwebtoken",
- "livekit-api",
+ "livekit-api 0.4.24",
  "opentalk-orchestrator-shared",
  "opentalk-recorder-web-api",
  "opentalk-roomserver-types",
@@ -2204,9 +2227,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.39"
+version = "0.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2b60c7c7a94e222078e9e9898c310489b1274baf38f93a166025ba80d97e335"
+checksum = "ec979adf1e44ba4d3e7df080ae81cf20b67b1a41583f0b6ec2c8325fb9666f24"
 dependencies = [
  "anyhow",
  "axum",
@@ -2232,14 +2255,14 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.39"
+version = "0.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b412b232f0338e97547d1d3c928de0e57d26647df9f1e81c8fca120990bd4d"
+checksum = "5dc171626dc9c63c650a3a492b86bf50ed22f060172930362d5a4befe237ae88"
 dependencies = [
  "async-trait",
  "axum",
  "jsonwebtoken",
- "livekit-api",
+ "livekit-api 0.5.1",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
@@ -2317,9 +2340,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.44.0"
+version = "0.44.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab91de665be29e0e4d5d28738a405d3c2cf819bd4bf5555e35f963662900d68f"
+checksum = "ef7a0e9a29c07b2bd0a2927e09353b0920e644a70e6ea85f6e08affb2a64da6c"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -2724,7 +2747,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -3642,7 +3665,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -3654,7 +3677,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn",
