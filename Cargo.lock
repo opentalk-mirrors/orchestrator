@@ -1993,9 +1993,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.40"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec979adf1e44ba4d3e7df080ae81cf20b67b1a41583f0b6ec2c8325fb9666f24"
+checksum = "cf8c4c543714b837bc90c95b2170fb268edb3236a8f6b2c9b146041ece095b41"
 dependencies = [
  "anyhow",
  "axum",
@@ -2021,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.40"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc171626dc9c63c650a3a492b86bf50ed22f060172930362d5a4befe237ae88"
+checksum = "2b45e7659521ef04abd09abc07e90759a270bed5a4ef1ca4d353e74b59fb5a4c"
 dependencies = [
  "async-trait",
  "axum",
@@ -2036,7 +2036,7 @@ dependencies = [
  "opentalk-types-signaling",
  "reqwest 0.13.4",
  "serde",
- "tower-http",
+ "tower-http 0.7.0",
  "tracing",
  "utoipa",
  "uuid",
@@ -2732,7 +2732,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower",
- "tower-http",
+ "tower-http 0.6.11",
  "tower-service",
  "url",
  "wasm-bindgen",
@@ -2774,7 +2774,7 @@ dependencies = [
  "tokio-rustls",
  "tokio-util",
  "tower",
- "tower-http",
+ "tower-http 0.6.11",
  "tower-service",
  "url",
  "wasm-bindgen",
@@ -3744,6 +3744,21 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "url",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b11f75e912b0c2be01b63d8cf8057b8c3f97cf34abb3d431a3a4c8675498e233"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "http",
+ "percent-encoding",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
