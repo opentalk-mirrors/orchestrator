@@ -42,12 +42,12 @@ api_keys = [{ id = "orchestrator", secret = "secret" }]
 
 # The api keys that will be used to authorize requests towards orchestrated services.
 #
-# When a service instance attempts to register at the orchestrator, the service needs to include its configured api key 
-# ids in the registration request. A service can only be accepted when the orchestrator knows at least one of the api 
+# When a service instance attempts to register at the orchestrator, the service needs to include its configured api key
+# ids in the registration request. A service can only be accepted when the orchestrator knows at least one of the api
 # keys that were sent by the service.
 #
 # When setting the api keys through the environment, a string notation ("<key_id>:<key_secret>") must be used:
-#  
+#
 # OT_ORCHESTRATOR_SERVICES__KEYS="roomserver:secret,recorder:secret2"
 #
 # A single key:
