@@ -59,113 +59,12 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
-
-lint:markdown:
-  stage: lint
-  <<: *default_job_condition
-  image: registry.gitlab.com/pipeline-components/markdownlint:latest
-  script:
-    - mdl --style .markdown_style.rb --warnings .
-
-lint:fmt:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo +nightly fmt -- --check
-
-lint:clippy:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo clippy --workspace --all-features --tests -- --deny warnings
-
-lint:doc:
-  stage: lint
-  <<: *default_job_condition
-  variables:
-    RUSTDOCFLAGS: -Dwarnings
-  script: cargo doc --workspace --no-deps --all-features
-
-lint:dependency_check:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      changes:
-        - Cargo.lock
-        - deny.toml
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - cargo-deny
-      --all-features
-      --workspace check
-      --deny unmatched-skip
-      --deny license-not-encountered
-      --deny license-exception-not-encountered
-      --hide-inclusion-graph
-
-lint:unnecessary_dependencies:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
-  script: cargo machete --with-metadata
-
-lint:yaml:
-  stage: lint
-  <<: *default_job_condition
-  image: alpine:3.24
-  before_script:
-    - apk add --no-cache yamllint
-  script: yamllint .
-
-lint:toml:
-  stage: lint
-  <<: *default_job_condition
-  script: taplo fmt --check
-
-lint:licensing:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: fsfe/reuse:latest
-    entrypoint: ['']
-  script:
-    - reuse lint
-
-lint:shellcheck:
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apt-get update && apt-get install -y shellcheck
-  script:
-    - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
-
-lint:commit:
-  cache: {}
-  image: node:lts-alpine
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apk add --no-cache git
-    - npm install -g @commitlint/cli @commitlint/config-conventional
-  script:
-    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
-
-lint:commit-signature:
-  stage: lint
-  needs: []
-  rules:
-    # Run in merge requests only.
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  script:
-    # %G? will log signature information for a commit. `N` stands for "no signature", `B` for "bad signature"
-    # refer to https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt-emGem
-    # grep checks that the output does not contain any "N" or "B" characters.
-    - >
-      git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
-      | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
 
 test:cargo_test:
   stage: test

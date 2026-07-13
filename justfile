@@ -3,7 +3,7 @@
 #
 # This file can be used with the [`just`](https://just.systems) tool.
 
-set quiet := true
+set quiet
 
 [no-exit-message]
 _check_cargo_set_version:
