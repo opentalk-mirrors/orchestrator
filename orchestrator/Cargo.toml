@@ -35,9 +35,9 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
 opentalk-transcription-web-api.workspace = true
-opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
-opentalk-types-api-internal.workspace = true
-opentalk-types-common = { version = "0.44.0", default-features = false, features = [
+opentalk-types-api-common = { version = "0.7", features = ["http", "serde"] }
+opentalk-types-api-internal = "0.2"
+opentalk-types-common = { version = "0.44", default-features = false, features = [
   "serde",
 ] }
 owo-colors.workspace = true
