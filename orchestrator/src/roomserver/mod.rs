@@ -204,6 +204,33 @@ impl RoomBackend for AppState {
         Ok(room_action)
     }
 
+    async fn delete_room(&self, room_id: RoomId) {
+        let SelectedInstance {
+            address,
+            auth_header,
+        } = match self.select_roomserver(room_id).await {
+            Ok(instance) => instance,
+            Err(err) => {
+                tracing::error!(
+                    "received delete request for unkown room {room_id}, instance selection failed with: {err:?}"
+                );
+                return;
+            }
+        };
+
+        tracing::debug!("sending delete room {room_id} request to roomserver '{address}'");
+
+        if let Err(err) = self
+            .client
+            .delete(format!("{address}v1/rooms/{room_id}"))
+            .header(AUTHORIZATION, auth_header)
+            .send()
+            .await
+        {
+            tracing::error!("Error response from roomserver for room deletion request: {err:?}");
+        }
+    }
+
     async fn request_room_token(
         &mut self,
         room_id: RoomId,
