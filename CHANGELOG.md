@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-07-17
+
+[0.10.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.9.0...v0.10.0
+
+### 📦 Dependencies
+
+- (deps) Update opentalk ([!197](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/197))
+
 ## [0.9.0] - 2026-07-16
 
 [0.9.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.8.1...v0.9.0

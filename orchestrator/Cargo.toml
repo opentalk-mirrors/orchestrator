@@ -5,7 +5,7 @@
 [package]
 name = "opentalk-orchestrator"
 description = "OpenTalk Orchestrator Service"
-version = "0.9.0"
+version = "0.10.0"
 publish = false
 authors.workspace = true
 edition.workspace = true
@@ -25,7 +25,7 @@ dirs.workspace = true
 futures-util.workspace = true
 jsonwebtoken = { workspace = true, features = ["aws-lc-rs"] }
 livekit-api.workspace = true
-opentalk-orchestrator-shared = { version = "0.9", features = [
+opentalk-orchestrator-shared = { version = "0.10.0", features = [
   "recording-service",
   "roomserver-service",
   "transcription-service",
@@ -35,9 +35,9 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
 opentalk-transcription-web-api.workspace = true
-opentalk-types-api-common = { version = "0.8", features = ["http", "serde"] }
+opentalk-types-api-common = { version = "0.9.0", features = ["http", "serde"] }
 opentalk-types-api-internal = "0.2"
-opentalk-types-common = { version = "0.45", default-features = false, features = [
+opentalk-types-common = { version = "0.46.0", default-features = false, features = [
   "serde",
 ] }
 owo-colors.workspace = true
