@@ -1990,9 +1990,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-recorder-web-api"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac5e2307e63b6ad07fd8fa677f3b871bf0c1f8a7d0de3882312c7513cfa4eb09"
+checksum = "f96f1b5c05adfbdc9a86d9b525cd38926a4bf5c900e89eeebf2307ff9ec71bd1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2003,9 +2003,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "447e9360c8d474093f9923548756370a5280b0632207b12b02dcfbe26f226455"
+checksum = "0f479d0469b9e3ac4eeb1f2daedbd14d73c162d9efbb441f1d2894d26f66d5b3"
 dependencies = [
  "anyhow",
  "axum",
@@ -2031,9 +2031,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f35b7c8d096e2bab2925d93f28f9fd42ceff9c2763094b3db2cc3f60b1313a9e"
+checksum = "ff5a95c32384f8d5c06ec9c726214565b71260f0c8f87f136b99892622ad5547"
 dependencies = [
  "async-trait",
  "axum",
@@ -2102,9 +2102,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-internal"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70dc2da6bee128e9f6a3a05f99060736bb75f447af1b8d40062c3b7df7dd262b"
+checksum = "1fd3593fe8c8ab228648bfbbd2b301f4bb169de7fe4b5ba0be0b979540ad526e"
 dependencies = [
  "chrono",
  "opentalk-types-api-common",
