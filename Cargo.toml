@@ -35,12 +35,12 @@ opentalk-roomserver-types = "0.5.0"
 opentalk-roomserver-web-api = "0.5.0"
 opentalk-service-auth = { version = "0.2.3", default-features = false }
 opentalk-transcription-web-api = { version = "0.3.0" }
-opentalk-types-api-common = "0.9.0"
-opentalk-types-api-internal = "0.3"
-opentalk-types-api-v1 = { version = "0.62.0", default-features = false, features = [
+opentalk-types-api-common = "0.10.0"
+opentalk-types-api-internal = "0.4"
+opentalk-types-api-v1 = { version = "0.63.0", default-features = false, features = [
   "http",
 ] }
-opentalk-types-common = { version = "0.46.0", default-features = false, features = [
+opentalk-types-common = { version = "0.47.0", default-features = false, features = [
   "serde",
 ] }
 owo-colors = "4.3.0"
