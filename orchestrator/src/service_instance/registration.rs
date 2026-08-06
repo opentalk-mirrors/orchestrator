@@ -2,31 +2,19 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::{HashSet, hash_map::Entry},
-    net::SocketAddr,
-    sync::Arc,
-    time::Duration,
-};
+use std::{net::SocketAddr, time::Duration};
 
 use anyhow::{Context, Result, bail};
 use axum::extract::ws::{CloseFrame, Message, WebSocket, close_code};
 use opentalk_orchestrator_shared::{
-    Metrics, RecorderResource, Register, RegisterResponse, RegisterType, ServiceAddress,
-    TranscriptionResource, error::RegistrationError,
+    Metrics, Register, RegisterResponse, RegisterType, ServiceAddress, ServiceKind,
+    error::RegistrationError,
 };
 use opentalk_service_auth::ApiKeyId;
-use opentalk_types_common::rooms::RoomId;
 use tokio::time::timeout;
 use url::Url;
 
-use crate::{
-    AppState,
-    service_instance::{
-        ServiceInstance,
-        runner::{InstanceCollection, InstanceRunner},
-    },
-};
+use crate::{AppState, service_instance::runner::InstanceRunner, storage::AddInstanceError};
 
 pub(crate) const REGISTRATION_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -86,31 +74,39 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
         }
     };
 
-    tracing::debug!("Received registration request from {address}");
+    let service_kind = ServiceKind::from(&register_type);
+    tracing::debug!("Received {service_kind} registration request from {address}");
 
     let service_registration = ServiceRegistration {
-        address,
+        address: address.clone(),
+        register_type,
         api_key_ids: register_data.api_key_ids,
         metrics: register_data.metrics,
     };
 
-    match register_type {
-        RegisterType::Recorder(service_data) => {
-            state
-                .run_recorder_instance(socket, service_registration, service_data.rooms)
-                .await;
-        }
-        RegisterType::Roomserver(service_data) => {
-            state
-                .run_roomserver_instance(socket, service_registration, service_data.rooms)
-                .await;
-        }
-        RegisterType::Transcription(service_data) => {
-            state
-                .run_transcription_instance(socket, service_registration, service_data.rooms)
-                .await;
+    let runner = match state
+        .create_instance_runner(socket, service_registration)
+        .await
+    {
+        Ok(runner) => runner,
+        Err(err) => {
+            tracing::error!(
+                "failed to create instance runner for {service_kind} ({address}): {err}"
+            );
+            return;
         }
     };
+
+    match runner.run().await {
+        Ok(()) => {
+            tracing::info!(
+                "disconnected from {service_kind} ({address}), connection closed by service"
+            );
+        }
+        Err(err) => {
+            tracing::error!("unexpected disconnect from {service_kind} ({address}): {err:?}");
+        }
+    }
 }
 
 /// Receive and parse the [`Register`] message on the given socket
@@ -139,150 +135,30 @@ async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register
     }
 }
 
+#[derive(Debug, Clone)]
 /// The data received from a service instance during registration
 pub struct ServiceRegistration {
     /// The address of the service instance
-    address: Url,
+    pub address: Url,
+    /// The type of the service instance
+    pub register_type: RegisterType,
     /// The api key ids provided by the service instance
-    api_key_ids: Vec<ApiKeyId>,
+    pub api_key_ids: Vec<ApiKeyId>,
     /// The initial metrics provided by the service instance
-    metrics: Metrics,
+    pub metrics: Metrics,
 }
 
 impl AppState {
-    /// Register and run a new roomserver instance
-    async fn run_roomserver_instance(
-        &self,
-        socket: WebSocket,
-        registration: ServiceRegistration,
-        rooms: HashSet<RoomId>,
-    ) {
-        let address = registration.address.clone();
-
-        let runner = match self
-            .create_instance_runner(
-                socket,
-                registration,
-                rooms,
-                Arc::clone(&self.roomserver_services),
-            )
-            .await
-        {
-            Ok(runner) => runner,
-            Err(err) => {
-                tracing::error!("failed to register roomserver ({address}): {err:?}");
-                return;
-            }
-        };
-
-        tracing::info!("successfully registered roomserver ({address})");
-
-        match runner.run().await {
-            Ok(()) => {
-                tracing::info!(
-                    "disconnected from roomserver ({address}), connection closed by service"
-                );
-            }
-            Err(err) => {
-                tracing::error!("unexpected disconnect from roomserver ({address}): {err:?}");
-            }
-        }
-    }
-
-    /// Register and run a new recorder instance
-    async fn run_recorder_instance(
-        &self,
-        socket: WebSocket,
-        registration: ServiceRegistration,
-        rooms: HashSet<RecorderResource>,
-    ) {
-        let address = registration.address.clone();
-
-        let runner = match self
-            .create_instance_runner(
-                socket,
-                registration,
-                rooms,
-                Arc::clone(&self.recorder_services),
-            )
-            .await
-        {
-            Ok(runner) => runner,
-            Err(err) => {
-                tracing::error!("failed to register recorder ({address}): {err:?}");
-                return;
-            }
-        };
-
-        tracing::info!("successfully registered recorder ({address})");
-
-        match runner.run().await {
-            Ok(()) => {
-                tracing::info!(
-                    "disconnected from recorder ({address}), connection closed by service"
-                );
-            }
-            Err(err) => {
-                tracing::error!("unexpected disconnect from recorder ({address}): {err:?}");
-            }
-        }
-    }
-
-    /// Register and run a new transcription instance
-    async fn run_transcription_instance(
-        &self,
-        socket: WebSocket,
-        registration: ServiceRegistration,
-        rooms: HashSet<TranscriptionResource>,
-    ) {
-        let address = registration.address.clone();
-
-        let runner = match self
-            .create_instance_runner(
-                socket,
-                registration,
-                rooms,
-                Arc::clone(&self.transcription_services),
-            )
-            .await
-        {
-            Ok(runner) => runner,
-            Err(err) => {
-                tracing::error!("failed to transcription service ({address}): {err:?}");
-                return;
-            }
-        };
-
-        tracing::info!("successfully registered transcription service ({address})");
-
-        match runner.run().await {
-            Ok(()) => {
-                tracing::info!(
-                    "disconnected from transcription service ({address}), connection closed by service"
-                );
-            }
-            Err(err) => {
-                tracing::error!(
-                    "unexpected disconnect from transcription service ({address}): {err:?}"
-                );
-            }
-        }
-    }
-
     /// Create the instance runner for the provided websocket
-    async fn create_instance_runner<T: ServiceInstance>(
+    async fn create_instance_runner(
         &self,
         mut socket: WebSocket,
         registration: ServiceRegistration,
-        managed_data: HashSet<T::ManagedResource>,
-        instances: InstanceCollection<T>,
-    ) -> Result<InstanceRunner<T>> {
+    ) -> Result<InstanceRunner> {
         let address = registration.address.clone();
+        let kind = ServiceKind::from(&registration.register_type);
 
-        if let Err(registration_error) = self
-            .register_instance(registration, managed_data, Arc::clone(&instances))
-            .await
-        {
+        if let Err(registration_error) = self.register_instance(registration).await {
             let error_msg = registration_error.to_string();
             send_registration_response(&mut socket, registration_error).await;
             close_socket(socket, close_code::NORMAL, "registration failed").await;
@@ -291,33 +167,32 @@ impl AppState {
 
         send_registration_response(&mut socket, RegisterResponse::Success).await;
 
-        Ok(InstanceRunner::new(socket, address, instances))
+        Ok(InstanceRunner::new(
+            socket,
+            address,
+            kind,
+            self.storage.clone(),
+        ))
     }
 
     /// Try to register a new service instance
-    async fn register_instance<T: ServiceInstance>(
+    async fn register_instance(
         &self,
         registration: ServiceRegistration,
-        managed_data: HashSet<T::ManagedResource>,
-        instances: InstanceCollection<T>,
     ) -> Result<(), RegistrationError> {
         if !self.knows_any_of(&registration.api_key_ids) {
             return Err(RegistrationError::UnknownApiKeyIds);
         }
 
-        let mut guard = instances.write().await;
-        let instance = match guard.entry(registration.address) {
-            Entry::Occupied(_) => {
-                return Err(RegistrationError::AddressAlreadyInUse);
-            }
-            Entry::Vacant(vacant_entry) => vacant_entry.insert(T::new(managed_data)),
-        };
-
-        let instance_data = instance.instance_data_mut();
-
-        instance_data.metrics = registration.metrics;
-        instance_data.api_key_ids = registration.api_key_ids;
-
+        if let Err(e) = self.storage.add_instance(registration).await {
+            return match e {
+                AddInstanceError::RegistrationError(registration_error) => Err(registration_error),
+                AddInstanceError::Internal(error) => {
+                    tracing::error!("Failed to register service: {error}");
+                    Err(RegistrationError::Internal)
+                }
+            };
+        }
         Ok(())
     }
 }

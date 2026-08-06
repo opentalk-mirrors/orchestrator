@@ -57,7 +57,7 @@ pub enum ServiceAddress {
     Port(u16),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RegisterType {
     #[cfg(feature = "recording-service")]
@@ -96,7 +96,7 @@ mod tests {
                 },
             },
             register_type: RegisterType::Recorder(RegisterRecorder {
-                rooms: [resource.clone()].into_iter().collect(),
+                rooms: [resource].into_iter().collect(),
             }),
         };
 

@@ -15,11 +15,24 @@ pub struct RegisterTranscription {
     pub rooms: HashSet<TranscriptionResource>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct TranscriptionResource {
     pub room_id: RoomId,
     pub breakout_id: Option<u32>,
+}
+
+impl super::ResourceType for TranscriptionResource {
+    fn kind() -> crate::ServiceKind {
+        crate::ServiceKind::Transcription
+    }
+
+    fn from_service_resource(resource: super::ServiceResource) -> Option<Self> {
+        match resource {
+            super::ServiceResource::Transcription(r) => Some(r),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -22,6 +22,10 @@ impl ShutdownReceiver {
             tracing::error!("Shutdown sender was dropped: {e}");
         }
     }
+
+    pub fn resubscribe(&self) -> ShutdownReceiver {
+        ShutdownReceiver(self.0.resubscribe())
+    }
 }
 
 /// Returned by managed tasks

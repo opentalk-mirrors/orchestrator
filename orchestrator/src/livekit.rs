@@ -12,6 +12,7 @@ use axum::{
     routing::{any, get},
 };
 use bytes::Bytes;
+use opentalk_orchestrator_shared::services::ServiceResource;
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use reqwest::header::AUTHORIZATION;
@@ -63,13 +64,14 @@ async fn forward_validate_request(
     body: Bytes,
     app_state: &AppState,
 ) -> anyhow::Result<AxumResponse> {
-    let roomserver_instances = app_state.roomserver_services.read().await;
-    let url = roomserver_instances
-        .iter()
-        .find_map(|(url, instance)| instance.rooms.contains(&room_id).then(|| url.clone()))
-        .context("Failed to select roomserver for valid known livekit token")?;
+    let service_resource = ServiceResource::Roomserver(room_id);
 
-    drop(roomserver_instances);
+    let (url, _) = app_state
+        .storage
+        .get_instances_for_resource(&service_resource)
+        .await
+        .context("Could not find associated instances for resource")?
+        .context("Failed to select roomserver for valid known livekit token")?;
 
     let mut url = url
         .join("livekit/rtc/validate")
@@ -116,11 +118,16 @@ async fn signaling(
     State(state): State<AppState>,
 ) -> Result<Response, ApiError> {
     let room_id = extract_room_id_from_request(livekit_query.access_token.as_deref(), &headers)?;
+    let service_resource = ServiceResource::Roomserver(room_id);
 
-    let roomserver_instances = state.roomserver_services.read().await;
-    let mut url = roomserver_instances
-        .iter()
-        .find_map(|(url, instance)| instance.rooms.contains(&room_id).then(|| url.clone()))
+    let (mut url, _) = state
+        .storage
+        .get_instances_for_resource(&service_resource)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to select instance for resource: {e:?}");
+            ApiError::internal().with_message("Failed to select instance for resource")
+        })?
         .ok_or_else(|| {
             tracing::error!(
                 "Received known roomserver token but could not find associated roomserver for room {room_id}"
@@ -128,7 +135,6 @@ async fn signaling(
 
             ApiError::internal()
         })?;
-    drop(roomserver_instances);
 
     match url.scheme() {
         "https" => url.set_scheme("wss").expect("wss is a valid scheme"),

@@ -15,7 +15,6 @@ use axum::{
 use clap::Parser;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
-use roomserver::RoomserverInstance;
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     select,
@@ -25,14 +24,13 @@ use tokio::{
     },
     sync::Mutex,
 };
-use transcription::TranscriptionInstance;
 use url::Url;
 
 use crate::{
-    recorder::RecorderInstance,
     roomserver::token_store::TokenStore,
-    service_instance::{registration::handle_socket, runner::InstanceCollection},
-    settings::{Settings, monitoring::Monitoring},
+    service_instance::registration::handle_socket,
+    settings::{Settings, monitoring::Monitoring, storage::Storage},
+    storage::{OrchestratorStorage, local::LocalStorage, redis::RedisStorage},
     tasks::{ShutdownReceiver, Tasks},
 };
 
@@ -44,6 +42,7 @@ mod recorder;
 mod roomserver;
 mod service_instance;
 mod settings;
+mod storage;
 mod tasks;
 mod transcription;
 
@@ -59,22 +58,18 @@ pub(crate) struct AppState {
     client: Client,
     public_url: Url,
     service_keys: ApiKeys,
-    recorder_services: InstanceCollection<RecorderInstance>,
-    roomserver_services: InstanceCollection<RoomserverInstance>,
+    storage: Arc<dyn OrchestratorStorage>,
     roomserver_tokens: Arc<Mutex<TokenStore>>,
-    transcription_services: InstanceCollection<TranscriptionInstance>,
 }
 
 impl AppState {
-    fn new(service_keys: ApiKeys, public_url: Url) -> Self {
+    fn new(storage: Arc<dyn OrchestratorStorage>, service_keys: ApiKeys, public_url: Url) -> Self {
         Self {
             client: Default::default(),
             public_url,
             service_keys,
-            recorder_services: Default::default(),
-            roomserver_services: Default::default(),
+            storage,
             roomserver_tokens: Arc::new(Mutex::new(TokenStore::new())),
-            transcription_services: Default::default(),
         }
     }
 
@@ -138,9 +133,11 @@ async fn main() -> Result<()> {
         Ok(())
     });
 
+    let storage = setup_storage(&mut tasks, settings.clone()).await?;
+
     let settings_clone = settings.clone();
     tasks.spawn("webserver", |shutdown| {
-        run_webserver(settings_clone, shutdown)
+        run_webserver(settings_clone, storage, shutdown)
     });
 
     match settings.monitoring {
@@ -161,8 +158,12 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Result<()> {
-    let state = AppState::new(settings.services.keys, settings.http.public_url);
+async fn run_webserver(
+    settings: Settings,
+    storage: Arc<dyn OrchestratorStorage>,
+    mut shutdown: ShutdownReceiver,
+) -> Result<()> {
+    let state = AppState::new(storage, settings.services.keys, settings.http.public_url);
 
     let app = Router::new()
         .route("/metrics", get(metrics))
@@ -191,19 +192,36 @@ async fn run_webserver(settings: Settings, mut shutdown: ShutdownReceiver) -> Re
     Ok(())
 }
 
-async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
-    let recorder_services = state.recorder_services.read().await;
-    let roomserver_services = state.roomserver_services.read().await;
-    let transcription_services = state.transcription_services.read().await;
+/// Sets up the storage backend based on the provided settings
+async fn setup_storage(
+    tasks: &mut Tasks,
+    settings: Settings,
+) -> Result<Arc<dyn OrchestratorStorage>> {
+    let storage: Arc<dyn OrchestratorStorage> = match settings.storage {
+        Storage::Local => {
+            tracing::info!("Using local storage for orchestrator state");
+            Arc::new(LocalStorage::new())
+        }
+        Storage::Redis { url } => {
+            let storage = RedisStorage::init(tasks, &url)
+                .await
+                .context("Failed to create Redis storage")?;
+            tracing::info!("Connected to redis storage at '{url}'");
+            Arc::new(storage)
+        }
+    };
 
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "recorders": *recorder_services,
-            "roomservers": *roomserver_services,
-            "transcriptions": *transcription_services,
-        })),
-    )
+    Ok(storage)
+}
+
+async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
+    match state.storage.get_orchestrator_metrics().await {
+        Ok(metrics) => (StatusCode::OK, Json(metrics)).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to fetch orchestrator metrics: {e:?}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
 
 async fn register(

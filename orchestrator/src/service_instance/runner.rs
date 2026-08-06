@@ -2,22 +2,19 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use axum::extract::ws::Message;
-use opentalk_orchestrator_shared::Event;
-use tokio::{
-    sync::RwLock,
-    time::{Instant, Interval},
+use opentalk_orchestrator_shared::{
+    Event, Metrics, RecorderEvent, RoomserverEvent, ServiceKind, TranscriptionEvent,
 };
+use tokio::time::Instant;
 use url::Url;
 
-use crate::service_instance::ServiceInstance;
+use crate::storage::OrchestratorStorage;
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
-
-pub(crate) type InstanceCollection<T> = Arc<RwLock<HashMap<Url, T>>>;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -29,35 +26,54 @@ enum Error {
 }
 
 /// The runner for a service instance
-pub(crate) struct InstanceRunner<T: ServiceInstance> {
+pub(crate) struct InstanceRunner {
     /// The websocket connection to the instance
     pub(crate) socket: axum::extract::ws::WebSocket,
     /// The HTTP address of the instance
     pub(crate) client_address: Url,
-    /// A reference counter to the list of global service instances of kind `T`
-    ///
-    /// When a runner exits, the associated service instance gets removed from this collection.
-    pub(crate) instances: InstanceCollection<T>,
+    /// The kind of service that the runner is managing
+    pub(crate) kind: ServiceKind,
+    /// The storage backend to use for state management
+    pub(crate) storage: Arc<dyn OrchestratorStorage>,
 }
 
-impl<T: ServiceInstance> InstanceRunner<T> {
+impl InstanceRunner {
     pub(crate) fn new(
         socket: axum::extract::ws::WebSocket,
         client_address: Url,
-        instances: InstanceCollection<T>,
+        kind: ServiceKind,
+        storage: Arc<dyn OrchestratorStorage>,
     ) -> Self {
         Self {
             socket,
             client_address,
-            instances,
+            kind,
+            storage,
         }
+    }
+
+    async fn set_service_metrics(&mut self, metrics: Metrics) -> Result<()> {
+        self.storage
+            .set_service_metrics(&self.client_address, self.kind, metrics)
+            .await
+            .context("Failed to set service metrics")
     }
 
     /// Run the event loop until the connection is closed by the service
     pub(crate) async fn run(mut self) -> Result<()> {
         let result = self.inner_run().await;
 
-        self.remove_associated_instance().await;
+        if let Err(e) = self
+            .storage
+            .remove_instance(&self.client_address, self.kind)
+            .await
+        {
+            tracing::error!(
+                "Runner exited but failed to remove {} {} from storage: {e:?}",
+                self.kind,
+                self.client_address,
+            )
+        };
 
         if let Err(e) = result {
             match e {
@@ -79,7 +95,9 @@ impl<T: ServiceInstance> InstanceRunner<T> {
                     tracing::error!("heartbeat timeout({HEARTBEAT_TIMEOUT:?}) triggered");
                     break;
                 }
-                msg = self.socket.recv() => self.handle_message(msg, &mut heartbeat).await?
+                msg = self.socket.recv() => {
+                    heartbeat.reset();
+                    self.handle_message(msg).await?}
             }
         }
 
@@ -90,7 +108,6 @@ impl<T: ServiceInstance> InstanceRunner<T> {
     async fn handle_message(
         &mut self,
         msg: Option<Result<Message, axum::Error>>,
-        heartbeat: &mut Interval,
     ) -> Result<(), Error> {
         let msg = msg
             .context("socket unexpectedly closed by client")?
@@ -125,47 +142,65 @@ impl<T: ServiceInstance> InstanceRunner<T> {
             }
         };
 
-        let mut guard = self.instances.write().await;
+        self.handle_service_event(event).await?;
 
-        let Some(instance) = guard.get_mut(&self.client_address) else {
-            return Err(anyhow!(
-                "Failed to get service instance for connected service ({})",
-                self.client_address
-            )
-            .into());
-        };
+        Ok(())
+    }
 
+    async fn handle_service_event(&mut self, event: Event) -> anyhow::Result<()> {
         match event {
-            Event::Metrics(metrics) => {
-                tracing::trace!(
-                    "set metrics '{metrics:?}' for connection '{}'",
-                    self.client_address
-                );
-
-                tracing::trace!("reset heartbeat for connection '{}'", self.client_address);
-                heartbeat.reset();
-
-                instance.instance_data_mut().metrics = metrics;
+            Event::Metrics(metrics) => self.set_service_metrics(metrics).await?,
+            Event::Recorder(recorder_event) => self.handle_recorder_event(recorder_event).await?,
+            Event::Roomserver(roomserver_event) => {
+                self.handle_roomserver_event(roomserver_event).await?
             }
-            event => {
-                let service_event = match event.try_into() {
-                    Ok(event) => event,
-                    Err(_) => {
-                        return Err(
-                            anyhow!("Received unexpected event variant from service").into()
-                        );
-                    }
-                };
-
-                instance.handle_event(service_event).await
+            Event::Transcription(transcription_event) => {
+                self.handle_transcription_event(transcription_event).await?
             }
         }
 
         Ok(())
     }
 
-    /// Remove the associated service instance from the global [`InstanceCollection`]
-    async fn remove_associated_instance(&mut self) {
-        self.instances.write().await.remove(&self.client_address);
+    async fn handle_recorder_event(&mut self, recorder_event: RecorderEvent) -> anyhow::Result<()> {
+        match recorder_event {
+            RecorderEvent::RemoveRecording(resource) => {
+                self.storage
+                    .remove_service_resource(&self.client_address, resource.into())
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn handle_roomserver_event(
+        &mut self,
+        roomserver_event: RoomserverEvent,
+    ) -> anyhow::Result<()> {
+        match roomserver_event {
+            RoomserverEvent::RemoveRoom(room_id) => {
+                self.storage
+                    .remove_service_resource(&self.client_address, room_id.into())
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn handle_transcription_event(
+        &mut self,
+        transcription_event: TranscriptionEvent,
+    ) -> anyhow::Result<()> {
+        match transcription_event {
+            TranscriptionEvent::RemoveTranscription(resource) => {
+                self.storage
+                    .remove_service_resource(&self.client_address, resource.into())
+                    .await?;
+            }
+        }
+
+        Ok(())
     }
 }
