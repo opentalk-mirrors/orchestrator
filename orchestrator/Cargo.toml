@@ -34,11 +34,11 @@ opentalk-orchestrator-shared = { workspace = true, features = [
 opentalk-recorder-web-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-service-auth = { version = "0.3", features = ["axum", "default"] }
+opentalk-service-auth = { version = "0.4", features = ["axum", "default"] }
 opentalk-transcription-web-api.workspace = true
-opentalk-types-api-common = { version = "0.10.0", features = ["http", "serde"] }
-opentalk-types-api-internal = "0.4"
-opentalk-types-common = { version = "0.47.0", default-features = false, features = [
+opentalk-types-api-common = { version = "0.11.0", features = ["http", "serde"] }
+opentalk-types-api-internal = "0.5"
+opentalk-types-common = { version = "0.48.0", default-features = false, features = [
   "serde",
 ] }
 owo-colors.workspace = true
