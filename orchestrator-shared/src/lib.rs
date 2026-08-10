@@ -9,17 +9,14 @@ use serde::{Deserialize, Serialize};
 pub use url::Url;
 
 use crate::services::ServiceState;
-#[cfg(feature = "recording-service")]
-pub use crate::services::recorder::{RecorderEvent, RecorderResource, RegisterRecorder};
-#[cfg(feature = "roomserver-service")]
-pub use crate::services::roomserver::{RegisterRoomserver, RoomserverEvent};
-#[cfg(feature = "transcription-service")]
-pub use crate::services::transcription::{
-    RegisterTranscription, TranscriptionEvent, TranscriptionResource,
-};
 pub use crate::{
     event::Event,
     register::{Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress},
+    services::{
+        recorder::{RecorderEvent, RecorderResource, RegisterRecorder},
+        roomserver::{RegisterRoomserver, RoomserverEvent},
+        transcription::{RegisterTranscription, TranscriptionEvent, TranscriptionResource},
+    },
 };
 
 pub mod error;

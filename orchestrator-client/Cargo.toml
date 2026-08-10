@@ -15,12 +15,6 @@ license.workspace = true
 
 [lib]
 
-[features]
-default = []
-recording-service = ["opentalk-orchestrator-shared/recording-service"]
-roomserver-service = ["opentalk-orchestrator-shared/roomserver-service"]
-transcription-service = ["opentalk-orchestrator-shared/transcription-service"]
-
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true

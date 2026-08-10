@@ -15,12 +15,6 @@ license.workspace = true
 
 [lib]
 
-[features]
-default = []
-recording-service = []
-roomserver-service = []
-transcription-service = []
-
 [dependencies]
 opentalk-service-auth.workspace = true
 opentalk-types-common = { workspace = true, features = ["serde"] }

@@ -6,13 +6,9 @@ use opentalk_service_auth::ApiKeyId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[cfg(feature = "recording-service")]
-use crate::RegisterRecorder;
-#[cfg(feature = "roomserver-service")]
-use crate::RegisterRoomserver;
-#[cfg(feature = "transcription-service")]
-use crate::RegisterTranscription;
-use crate::{Metrics, error::RegistrationError};
+use crate::{
+    Metrics, RegisterRecorder, RegisterRoomserver, RegisterTranscription, error::RegistrationError,
+};
 
 /// The server response to the [`Register`] request
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,11 +56,8 @@ pub enum ServiceAddress {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RegisterType {
-    #[cfg(feature = "recording-service")]
     Recorder(RegisterRecorder),
-    #[cfg(feature = "roomserver-service")]
     Roomserver(RegisterRoomserver),
-    #[cfg(feature = "transcription-service")]
     Transcription(RegisterTranscription),
 }
 

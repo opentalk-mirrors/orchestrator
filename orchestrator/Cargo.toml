@@ -26,11 +26,7 @@ dirs.workspace = true
 futures-util.workspace = true
 jsonwebtoken = { version = "11", features = ["aws_lc_rs"] }
 livekit-api.workspace = true
-opentalk-orchestrator-shared = { workspace = true, features = [
-  "recording-service",
-  "roomserver-service",
-  "transcription-service",
-] }
+opentalk-orchestrator-shared.workspace = true
 opentalk-recorder-web-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true

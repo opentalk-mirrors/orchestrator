@@ -10,12 +10,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Metrics, ServiceKind};
 
-#[cfg(feature = "recording-service")]
 pub mod recorder;
-#[cfg(feature = "roomserver-service")]
 pub mod roomserver;
 pub mod service_resource;
-#[cfg(feature = "transcription-service")]
 pub mod transcription;
 
 pub use service_resource::{ServiceResource, ServiceResourceParseError};
