@@ -8,21 +8,8 @@ pub mod signaling_socket;
 
 pub use client::OrchestratorClient;
 pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
-pub use opentalk_orchestrator_shared::{Metrics, RegisterType, ServiceAddress};
-#[cfg(feature = "recording-service")]
-pub use opentalk_orchestrator_shared::{RecorderEvent, RecorderResource, RegisterRecorder};
-#[cfg(feature = "roomserver-service")]
-pub use opentalk_orchestrator_shared::{RegisterRoomserver, RoomserverEvent};
-#[cfg(feature = "transcription-service")]
 pub use opentalk_orchestrator_shared::{
-    RegisterTranscription, TranscriptionEvent, TranscriptionResource,
+    Metrics, RecorderEvent, RecorderResource, RegisterRecorder, RegisterRoomserver,
+    RegisterTranscription, RegisterType, RoomserverEvent, ServiceAddress, TranscriptionEvent,
+    TranscriptionResource,
 };
-
-#[cfg(not(any(
-    feature = "recording-service",
-    feature = "roomserver-service",
-    feature = "transcription-service"
-)))]
-compile_error!(
-    "At least one service feature needs to be enabled (e.g. recording-service, roomserver-service, transcription-service)"
-);

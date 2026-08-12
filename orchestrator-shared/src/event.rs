@@ -4,23 +4,14 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::Metrics;
-#[cfg(feature = "recording-service")]
-use crate::RecorderEvent;
-#[cfg(feature = "roomserver-service")]
-use crate::RoomserverEvent;
-#[cfg(feature = "transcription-service")]
-use crate::TranscriptionEvent;
+use crate::{Metrics, RecorderEvent, RoomserverEvent, TranscriptionEvent};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", tag = "type")]
 pub enum Event {
     Metrics(Metrics),
-    #[cfg(feature = "recording-service")]
     Recorder(RecorderEvent),
-    #[cfg(feature = "roomserver-service")]
     Roomserver(RoomserverEvent),
-    #[cfg(feature = "transcription-service")]
     Transcription(TranscriptionEvent),
 }
 
