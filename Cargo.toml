@@ -34,14 +34,14 @@ opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.13
 opentalk-recorder-web-api = "0.3.1"
 opentalk-roomserver-types = "0.7.0"
 opentalk-roomserver-web-api = "0.7.0"
-opentalk-service-auth = { version = "0.4", default-features = false }
+opentalk-service-auth = { version = "0.5", default-features = false }
 opentalk-transcription-web-api = { version = "0.5.0" }
-opentalk-types-api-common = "0.11.0"
-opentalk-types-api-internal = "0.5"
-opentalk-types-api-v1 = { version = "0.64.0", default-features = false, features = [
+opentalk-types-api-common = "0.12.0"
+opentalk-types-api-internal = "0.6"
+opentalk-types-api-v1 = { version = "0.65.0", default-features = false, features = [
   "http",
 ] }
-opentalk-types-common = { version = "0.48.0", default-features = false, features = [
+opentalk-types-common = { version = "0.49.0", default-features = false, features = [
   "serde",
 ] }
 owo-colors = "4.3.0"
