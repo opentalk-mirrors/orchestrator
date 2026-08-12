@@ -2355,7 +2355,7 @@ dependencies = [
  "futures-util",
  "jsonwebtoken 11.0.0",
  "livekit-api",
- "opentalk-orchestrator-shared 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opentalk-orchestrator-shared 0.13.0",
  "opentalk-recorder-web-api",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -2387,13 +2387,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-client"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "anyhow",
  "async-trait",
  "futures-util",
  "log",
- "opentalk-orchestrator-shared 0.13.0",
+ "opentalk-orchestrator-shared 0.14.0",
  "opentalk-service-auth 0.5.0",
  "serde",
  "serde_json",
@@ -2406,24 +2406,24 @@ dependencies = [
 [[package]]
 name = "opentalk-orchestrator-shared"
 version = "0.13.0"
-dependencies = [
- "opentalk-service-auth 0.5.0",
- "opentalk-types-common 0.49.0",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "url",
-]
-
-[[package]]
-name = "opentalk-orchestrator-shared"
-version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c62de6dd80c5c82a284c3db1fa657825e982dff0872600037fff4eee0fa527"
 dependencies = [
  "opentalk-service-auth 0.4.0",
  "opentalk-types-common 0.48.0",
  "serde",
+ "thiserror 2.0.20",
+ "url",
+]
+
+[[package]]
+name = "opentalk-orchestrator-shared"
+version = "0.14.0"
+dependencies = [
+ "opentalk-service-auth 0.5.0",
+ "opentalk-types-common 0.49.0",
+ "serde",
+ "serde_json",
  "thiserror 2.0.20",
  "url",
 ]
