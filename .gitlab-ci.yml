@@ -30,12 +30,12 @@ stages:
   - release
 
 variables:
-  KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: alpine
 
 .template_vars:
-  FLAVORS: [alpine, trixie, noble]
+  FLAVORS: [alpine, trixie, resolute]
+  DEFAULT_FLAVOR: alpine
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -64,6 +64,11 @@ include:
     file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/common-lint
     ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-container-build
+    inputs:
+      harbor_namespace_suffix: orchestrator
+    ref: v2
     file: .gitlab-ci-template.yml
 
 test:cargo_test:
@@ -107,158 +112,3 @@ build:
     expire_in: 1 week
   script:
     - cargo auditable build --all-features --release --locked --workspace
-
-package:read-tags:
-  stage: package
-  needs: []
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-  image:
-    name: alpine/git
-    entrypoint: ['']
-  artifacts:
-    reports:
-      dotenv: package.env
-  script:
-    - git fetch --tags
-    - TAGS=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V)
-    - TAGS=$(echo "$TAGS" | sort -V | head -n -1 | tr "\n" " ")
-    - echo "TAGS=$TAGS" >> package.env
-
-package:container-mr:
-  stage: package
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  image:
-    name: $KANIKO_IMAGE
-    pull_policy: if-not-present
-    entrypoint: ['']
-  script:
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
-    # According to https://docs.docker.com/engine/reference/commandline/tag/
-    # the tag may contain lowercase and uppercase letters, digits, underscores,
-    # periods, and hyphens, so we replace everything else by '_'. It cannot start
-    # with a period or hyphen, so we replace those if we find them at the start of a line.
-    # It must be no longer than 128 characters, so we truncate it in addition.
-    #
-    # tr -c means the same as --complement, but busybox tr doesn't have that.
-    #
-    # Some platforms on which this service is deployed allow only 63 characters
-    # for the container tag, so we restrict the length to that.
-    - >
-      IMAGE_TAG=$(
-          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
-          tr -c '[:alnum:]_.-' '_' |
-          sed 's/^[.-]/_/' |
-          cut -c -63
-      )
-    - >
-      /kaniko/executor
-      --registry-mirror=mirror.gcr.io
-      --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/Dockerfile
-      --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG
-      --force
-
-package:container-build:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-  image:
-    name: $KANIKO_IMAGE
-    pull_policy: if-not-present
-    entrypoint: ['']
-  script:
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
-    - >
-      /kaniko/executor
-      --registry-mirror=mirror.gcr.io
-      --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/Dockerfile-$FLAVOR
-      --destination "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-      --force
-
-package:container-create-and-push-tags:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  needs:
-    - job: package:read-tags
-      optional: true
-    - job: package:container-build
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-  image:
-    name: $SKOPEO_IMAGE
-    entrypoint: ['']
-  script:
-    - >
-      TAGS_TO_PUSH=$(./ci/create-container-tags.sh
-      "${CI_COMMIT_TAG:-$CI_COMMIT_REF_NAME}"
-      "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR")
-    - |
-      for tag in $TAGS_TO_PUSH; do
-        skopeo copy \
-        --src-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
-        --dest-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
-        "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
-      done
-
-package:read-trivy-ignore-file:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  stage: package
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - STR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR | sed -e '/^#/d' -e '/^$/d')
-    - echo "TRIVY_IGNORE_FILE_STR_$FLAVOR=$STR" >> package.env
-  artifacts:
-    reports:
-      dotenv: package.env
-
-package:container-scanning:
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
-  needs:
-    - package:container-create-and-push-tags
-    - package:read-trivy-ignore-file
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  stage: package
-  variables:
-    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
-    PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
-    PIPELINE_ADDITIONAL_LABELS: team::conference room
-    PIPELINE_TRIVY_IGNORE_FILE_STR_VAR: TRIVY_IGNORE_STR_${FLAVOR}
-  trigger:
-    project: opentalk/opentalk-devops/scan-container
-    strategy: depend
-    forward:
-      pipeline_variables: true
