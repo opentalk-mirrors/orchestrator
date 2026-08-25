@@ -10,6 +10,6 @@ pub use client::OrchestratorClient;
 pub use config::{OrchestratorBaseUrl, OrchestratorConfig};
 pub use opentalk_orchestrator_shared::{
     Metrics, RecorderEvent, RecorderResource, RegisterRecorder, RegisterRoomserver,
-    RegisterTranscription, RegisterType, RoomserverEvent, ServiceAddress, TranscriptionEvent,
-    TranscriptionResource,
+    RegisterTranscription, RegisterType, RoomserverEvent, ServiceAddress, ServiceResource,
+    TranscriptionEvent, TranscriptionResource,
 };

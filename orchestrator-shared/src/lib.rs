@@ -13,6 +13,7 @@ pub use crate::{
     event::Event,
     register::{Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress},
     services::{
+        ServiceResource,
         recorder::{RecorderEvent, RecorderResource, RegisterRecorder},
         roomserver::{RegisterRoomserver, RoomserverEvent},
         transcription::{RegisterTranscription, TranscriptionEvent, TranscriptionResource},

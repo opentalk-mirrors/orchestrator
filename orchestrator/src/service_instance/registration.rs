@@ -4,7 +4,7 @@
 
 use std::{net::SocketAddr, time::Duration};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use axum::extract::ws::{CloseFrame, Message, WebSocket, close_code};
 use opentalk_orchestrator_shared::{
     Metrics, Register, RegisterResponse, RegisterType, ServiceAddress, ServiceKind,
@@ -18,6 +18,10 @@ use crate::{AppState, service_instance::runner::InstanceRunner, storage::AddInst
 
 pub(crate) const REGISTRATION_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Number of additional registration attempts granted to a service instance that reported
+/// resolved resource conflicts
+pub(crate) const MAX_RESOURCE_CONFLICT_RETRIES: u32 = 3;
+
 /// Local error type for the registration process
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -30,11 +34,8 @@ enum Error {
 }
 
 pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr, state: AppState) {
-    let Register {
-        register_data,
-        register_type,
-    } = match receive_registration_message(&mut socket).await {
-        Ok(msg) => msg,
+    let registration = match state.register_service(&mut socket, socket_addr).await {
+        Ok(registration) => registration,
         Err(err) => {
             tracing::error!("failed to register new service: {err}");
 
@@ -48,54 +49,10 @@ pub(crate) async fn handle_socket(mut socket: WebSocket, socket_addr: SocketAddr
         }
     };
 
-    let address = match register_data.service_address.clone() {
-        ServiceAddress::Url(url) => url,
-        ServiceAddress::Port(port) => {
-            match Url::parse(&format!("http://{}:{}", socket_addr.ip(), port)) {
-                Ok(url) => url,
-                Err(err) => {
-                    tracing::error!(
-                        "failed to build service address from socket address and port: {err}"
-                    );
-                    send_registration_response(
-                        &mut socket,
-                        RegistrationError::InvalidServiceAddress,
-                    )
-                    .await;
-                    close_socket(
-                        socket,
-                        close_code::NORMAL,
-                        "failed to build service address",
-                    )
-                    .await;
-                    return;
-                }
-            }
-        }
-    };
+    let address = registration.address;
+    let service_kind = ServiceKind::from(&registration.register_type);
 
-    let service_kind = ServiceKind::from(&register_type);
-    tracing::debug!("Received {service_kind} registration request from {address}");
-
-    let service_registration = ServiceRegistration {
-        address: address.clone(),
-        register_type,
-        api_key_ids: register_data.api_key_ids,
-        metrics: register_data.metrics,
-    };
-
-    let runner = match state
-        .create_instance_runner(socket, service_registration)
-        .await
-    {
-        Ok(runner) => runner,
-        Err(err) => {
-            tracing::error!(
-                "failed to create instance runner for {service_kind} ({address}): {err}"
-            );
-            return;
-        }
-    };
+    let runner = InstanceRunner::new(socket, address.clone(), service_kind, state.storage.clone());
 
     match runner.run().await {
         Ok(()) => {
@@ -135,6 +92,45 @@ async fn receive_registration_message(socket: &mut WebSocket) -> Result<Register
     }
 }
 
+/// Wait for the registration request on the given socket
+async fn receive_registration(
+    socket: &mut WebSocket,
+    socket_addr: SocketAddr,
+) -> Result<ServiceRegistration, Error> {
+    let Register {
+        register_data,
+        register_type,
+    } = receive_registration_message(socket).await?;
+
+    let address = resolve_service_address(register_data.service_address, socket_addr)?;
+
+    Ok(ServiceRegistration {
+        address,
+        register_type,
+        api_key_ids: register_data.api_key_ids,
+        metrics: register_data.metrics,
+    })
+}
+
+/// Determine the address on which the registering service instance can be reached
+///
+/// Instances that only provided a port are addressed on the IP address they connected from.
+fn resolve_service_address(
+    service_address: ServiceAddress,
+    socket_addr: SocketAddr,
+) -> Result<Url, RegistrationError> {
+    match service_address {
+        ServiceAddress::Url(url) => Ok(url),
+        ServiceAddress::Port(port) => Url::parse(&format!("http://{}:{port}", socket_addr.ip()))
+            .map_err(|err| {
+                tracing::error!(
+                    "failed to build service address from socket address and port: {err}"
+                );
+                RegistrationError::InvalidServiceAddress
+            }),
+    }
+}
+
 #[derive(Debug, Clone)]
 /// The data received from a service instance during registration
 pub struct ServiceRegistration {
@@ -149,30 +145,63 @@ pub struct ServiceRegistration {
 }
 
 impl AppState {
-    /// Create the instance runner for the provided websocket
-    async fn create_instance_runner(
+    /// Register a service instance on the given socket
+    ///
+    /// A [`RegistrationError::ResourceConflict`] is reported to the service instance without
+    /// closing the connection, because the instance is expected to release the conflicting
+    /// resources and then register again on the same connection. Keeping the connection open
+    /// avoids a reconnect, during which the instance could collide with yet another instance.
+    ///
+    /// The connection is only given up once the instance ran out of retries, or reported a
+    /// conflict-unrelated error.
+    async fn register_service(
         &self,
-        mut socket: WebSocket,
-        registration: ServiceRegistration,
-    ) -> Result<InstanceRunner> {
-        let address = registration.address.clone();
-        let kind = ServiceKind::from(&registration.register_type);
+        socket: &mut WebSocket,
+        socket_addr: SocketAddr,
+    ) -> Result<ServiceRegistration, Error> {
+        let mut retries_left = MAX_RESOURCE_CONFLICT_RETRIES;
 
-        if let Err(registration_error) = self.register_instance(registration).await {
-            let error_msg = registration_error.to_string();
-            send_registration_response(&mut socket, registration_error).await;
-            close_socket(socket, close_code::NORMAL, "registration failed").await;
-            bail!(error_msg);
+        loop {
+            let registration = receive_registration(socket, socket_addr).await?;
+            let service_kind = ServiceKind::from(&registration.register_type);
+
+            tracing::debug!(
+                "Received {service_kind} registration request from {}",
+                registration.address
+            );
+
+            match self.register_instance(registration.clone()).await {
+                Ok(()) => {
+                    send_registration_response(socket, RegisterResponse::Success).await;
+
+                    return Ok(registration);
+                }
+                Err(RegistrationError::ResourceConflict(resources)) if retries_left > 0 => {
+                    retries_left -= 1;
+
+                    tracing::info!(
+                        "{service_kind} ({}) has {} resource(s) managed by other instances, \
+                         awaiting re-registration ({retries_left} retries left)",
+                        registration.address,
+                        resources.len(),
+                    );
+
+                    send_registration_response(
+                        socket,
+                        RegistrationError::ResourceConflict(resources),
+                    )
+                    .await;
+                }
+                Err(registration_error) => {
+                    tracing::error!(
+                        "failed to register {service_kind} ({}): {registration_error}",
+                        registration.address
+                    );
+
+                    return Err(registration_error.into());
+                }
+            }
         }
-
-        send_registration_response(&mut socket, RegisterResponse::Success).await;
-
-        Ok(InstanceRunner::new(
-            socket,
-            address,
-            kind,
-            self.storage.clone(),
-        ))
     }
 
     /// Try to register a new service instance

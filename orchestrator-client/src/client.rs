@@ -8,6 +8,7 @@ use anyhow::{Chain, Context, Result};
 use async_trait::async_trait;
 use opentalk_orchestrator_shared::{
     Event, Metrics, Register, RegisterData, RegisterResponse, RegisterType, ServiceAddress,
+    error::RegistrationError, services::ServiceResource,
 };
 use opentalk_service_auth::ApiKeyId;
 use tokio::{sync::mpsc, time::Instant};
@@ -26,14 +27,24 @@ pub enum ClientError {
     #[error("Failed to build initial websocket request")]
     BuildWsRequest(#[from] BuildWsRequestError),
 
+    #[error("Failed to resolve resource conflicts")]
+    UnresolvedResourceConflict,
+
     #[error(transparent)]
     Recoverable(#[from] anyhow::Error),
 }
 
 #[async_trait]
 pub trait StateProvider {
+    /// Return the type of service that is registering at the orchestrator
     async fn register_type(&mut self) -> RegisterType;
+    /// Return the current metrics of the service
     async fn metrics(&mut self) -> Metrics;
+    /// Called when the orchestrator reports that a resource collision has occurred
+    ///
+    /// The service must clear the resources to register at the orchestrator. Returning Ok(())
+    /// will cause the client to immediately register at the orchestrator again.
+    async fn on_resource_collision(&mut self, resources: &[ServiceResource]) -> anyhow::Result<()>;
 }
 
 /// The client to connect to the orchestrator
@@ -42,11 +53,11 @@ pub struct OrchestratorClient {
     key_ids: Vec<ApiKeyId>,
     /// The orchestrator configuration
     config: OrchestratorConfig,
-    /// Receiver for events that shall be forwarded to the orchestrator
+    /// Internal receiver for events that shall be forwarded to the orchestrator
     event_receiver: mpsc::Receiver<Event>,
 }
 
-/// Handle to send events to the orchestrator client task
+/// Handle to send events to the [`OrchestratorClient`] task
 #[derive(Debug, Clone)]
 pub struct OrchestratorHandle(pub mpsc::Sender<Event>);
 
@@ -68,6 +79,7 @@ impl OrchestratorClient {
         config: OrchestratorConfig,
         key_ids: K,
     ) -> (Self, OrchestratorHandle) {
+        // Client -> Orchestrator
         let (event_sender, event_receiver) = mpsc::channel::<Event>(32);
 
         (
@@ -245,28 +257,45 @@ impl OrchestratorClient {
         socket: &mut SignalingSocket,
         service_address: ServiceAddress,
         state_provider: &mut P,
-    ) -> Result<()>
+    ) -> Result<(), ClientError>
     where
         P: StateProvider + Send + 'static,
     {
-        let registration = Register {
-            register_data: RegisterData {
-                service_address,
-                api_key_ids: self.key_ids.clone(),
-                metrics: state_provider.metrics().await,
-            },
-            register_type: state_provider.register_type().await,
-        };
+        const MAX_RETRIES: u32 = 3;
+        let mut retries = 0;
 
-        socket.send(registration).await?;
+        loop {
+            let registration = Register {
+                register_data: RegisterData {
+                    service_address: service_address.clone(),
+                    api_key_ids: self.key_ids.clone(),
+                    metrics: state_provider.metrics().await,
+                },
+                register_type: state_provider.register_type().await,
+            };
 
-        let registration_response = socket.recv::<RegisterResponse>().await?;
+            socket.send(registration).await?;
 
-        if let RegisterResponse::Error(err) = registration_response {
-            return Err(err).context("Failed to register at orchestrator");
+            let registration_response = socket.recv::<RegisterResponse>().await?;
+
+            match registration_response {
+                RegisterResponse::Success => return Ok(()),
+                RegisterResponse::Error(RegistrationError::ResourceConflict(resources)) => {
+                    if retries >= MAX_RETRIES {
+                        return Err(ClientError::UnresolvedResourceConflict);
+                    }
+                    retries += 1;
+
+                    state_provider
+                        .on_resource_collision(&resources)
+                        .await
+                        .context("Failed to handle resource collision")?;
+                }
+                RegisterResponse::Error(err) => {
+                    return Err(err).context("Failed to register at orchestrator")?;
+                }
+            }
         }
-
-        Ok(())
     }
 }
 
