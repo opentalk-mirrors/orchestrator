@@ -2,11 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::time::Duration;
+
 use opentalk_orchestrator_shared::{
     Metrics, OrchestratorMetrics, ServiceKind,
     error::RegistrationError,
     services::{InstanceData, ServiceResource},
 };
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use url::Url;
 
 use crate::service_instance::registration::ServiceRegistration;
@@ -15,6 +18,10 @@ pub(crate) mod local;
 pub(crate) mod redis;
 #[cfg(test)]
 pub(crate) mod tests;
+
+/// Longer default expiry than the roomserver default token expiry. This avoids having tokens expire
+/// in the orchestrator before they do in the roomserver
+const ROOMSERVER_TOKEN_EXPIRY: Duration = Duration::from_secs(60);
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum AddInstanceError {
@@ -69,6 +76,17 @@ pub(crate) trait OrchestratorStorage: std::fmt::Debug + Sync + Send {
         &self,
         resource: ServiceResource,
     ) -> anyhow::Result<(Url, InstanceData)>;
+
+    /// Add a roomserver token to the internal token store, allowing the orchestrator to map
+    /// `/rooms/start` with a known token to the associated room id
+    async fn add_roomserver_token(&self, room_id: RoomId, token: Token) -> anyhow::Result<()>;
+
+    /// Consume a known roomserver token, removing it from the internal token store
+    async fn consume_roomserver_token(&self, token: &Token) -> anyhow::Result<Option<RoomId>>;
+
+    /// Overwrite the default [`ROOMSERVER_TOKEN_EXPIRY`]
+    #[cfg(test)]
+    async fn set_roomserver_token_expiry(&mut self, expiry: Duration);
 
     #[cfg(test)]
     async fn assert_empty(&self) -> anyhow::Result<()>;

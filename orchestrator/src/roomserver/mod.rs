@@ -24,7 +24,6 @@ use crate::{
 };
 
 pub mod signaling;
-pub mod token_store;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -239,12 +238,11 @@ impl RoomBackend for AppState {
                     deserialize_token_response(status, &body)?;
 
                 if let Err(e) = self
-                    .roomserver_tokens
-                    .lock()
+                    .storage
+                    .add_roomserver_token(room_id, roomserver_access.token)
                     .await
-                    .add_token(room_id, roomserver_access.token)
                 {
-                    tracing::error!("Failed to store roomserver token: {e}");
+                    tracing::error!("Failed to store roomserver token: {e:?}");
                     return Err(
                         ApiError::internal().with_message("Failed to store roomserver token")
                     );

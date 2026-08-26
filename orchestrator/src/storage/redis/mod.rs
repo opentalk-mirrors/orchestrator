@@ -4,14 +4,14 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use opentalk_orchestrator_shared::{
     Metrics, OrchestratorMetrics, RecorderResource, RegisterType, ServiceKind,
     TranscriptionResource,
     services::{InstanceData, ServiceResource},
 };
 use opentalk_service_auth::ApiKeyId;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use redis::IntoConnectionInfo;
 use url::Url;
 use uuid::Uuid;
@@ -19,11 +19,11 @@ use uuid::Uuid;
 use crate::{
     service_instance::registration::ServiceRegistration,
     storage::{
-        AddInstanceError, OrchestratorStorage,
+        AddInstanceError, OrchestratorStorage, ROOMSERVER_TOKEN_EXPIRY,
         redis::{
             keys::{
-                ResourceLookupKey, ServiceId, ServiceInstanceKey, ServiceKindKey,
-                ServiceMetricsKey, ServiceResourceKey,
+                ResourceLookupKey, RoomserverTokenKey, ServiceId, ServiceInstanceKey,
+                ServiceKindKey, ServiceMetricsKey, ServiceResourceKey,
             },
             peer_monitor::PeerMonitor,
             scripts::AddInstanceScriptError,
@@ -46,6 +46,7 @@ mod util;
 pub(crate) struct RedisStorage {
     pub(crate) client: redis::Client,
     pub(crate) orchestrator_id: Uuid,
+    pub(crate) roomserver_token_expiry: Duration,
 }
 
 impl RedisStorage {
@@ -53,7 +54,7 @@ impl RedisStorage {
     ///
     /// The orchestrator makes use of the RESP3 protocol. A minimum redis version of 7.2 is
     /// required.
-    pub(crate) async fn init(tasks: &mut Tasks, redis_url: &str) -> Result<Self> {
+    pub(crate) async fn init(tasks: &mut Tasks, redis_url: &str) -> anyhow::Result<Self> {
         let connection_info = redis_url.into_connection_info()?;
         let redis_connection_info = connection_info
             .redis_settings()
@@ -83,6 +84,7 @@ impl RedisStorage {
         Ok(Self {
             client,
             orchestrator_id,
+            roomserver_token_expiry: ROOMSERVER_TOKEN_EXPIRY,
         })
     }
 }
@@ -213,7 +215,7 @@ impl OrchestratorStorage for RedisStorage {
         let service_ids = service_ids
             .into_iter()
             .map(|sid| ServiceId::try_from(sid.as_str()))
-            .collect::<Result<Vec<ServiceId>>>()?;
+            .collect::<anyhow::Result<Vec<ServiceId>>>()?;
 
         if service_ids.is_empty() || !service_ids.contains(&id) {
             return Ok(None);
@@ -287,6 +289,38 @@ impl OrchestratorStorage for RedisStorage {
         resource: ServiceResource,
     ) -> anyhow::Result<(Url, InstanceData)> {
         scripts::select_instance(&self.client, resource).await
+    }
+
+    async fn add_roomserver_token(&self, room_id: RoomId, token: Token) -> anyhow::Result<()> {
+        redis::cmd("SET")
+            .arg(RoomserverTokenKey { token })
+            .arg(room_id)
+            .arg("EX")
+            .arg(self.roomserver_token_expiry.as_secs())
+            .query_async::<()>(&mut self.client.get_multiplexed_async_connection().await?)
+            .await
+            .context("Failed to set roomserver token in Redis")
+    }
+
+    async fn consume_roomserver_token(&self, token: &Token) -> anyhow::Result<Option<RoomId>> {
+        let (room_id, _) = redis::pipe()
+            .atomic()
+            .cmd("GET")
+            .arg(RoomserverTokenKey { token: *token })
+            .cmd("DEL")
+            .arg(RoomserverTokenKey { token: *token })
+            .query_async::<(Option<RoomId>, ())>(
+                &mut self.client.get_multiplexed_async_connection().await?,
+            )
+            .await
+            .context("Failed to consume roomserver token from Redis")?;
+
+        Ok(room_id)
+    }
+
+    #[cfg(test)]
+    async fn set_roomserver_token_expiry(&mut self, expiry: Duration) {
+        self.roomserver_token_expiry = expiry
     }
 
     #[cfg(test)]

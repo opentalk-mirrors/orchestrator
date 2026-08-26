@@ -19,6 +19,7 @@
 use anyhow::Context;
 use base64::prelude::{BASE64_STANDARD, Engine};
 use opentalk_orchestrator_shared::ServiceKind;
+use opentalk_types_common::roomserver::Token;
 use redis_args::ToRedisArgs;
 use url::Url;
 
@@ -138,3 +139,12 @@ pub struct OrchestratorServicesKey {
 }
 
 pub const ORCHESTRATORS_SET_KEY: &str = "ot-orchestrator:orchestrators";
+
+/// Token mapping key for the roomserver signaling proxy
+///
+/// Maps the token to the associated room id
+#[derive(Debug, ToRedisArgs)]
+#[to_redis_args(fmt = "ot-orchestrator:roomserver-token:{token}")]
+pub struct RoomserverTokenKey {
+    pub token: Token,
+}
