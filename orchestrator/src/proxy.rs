@@ -23,7 +23,11 @@ async fn forward_signaling_messages(
     loop {
         tokio::select! {
             msg = client.recv() => {
-                let msg = msg.context("Client closed connection")?.context("Error on client connection")?;
+                let Some(msg) = msg else {
+                    tracing::debug!("Client closed connection, ending proxy task");
+                    return Ok(());
+                };
+                let msg = msg.context("Error on client connection")?;
 
                 let Some(msg) = translation::axum_to_tungstenite(msg) else {
                     continue;
@@ -32,7 +36,11 @@ async fn forward_signaling_messages(
                 service.send(msg).await?;
             }
             msg = service.next() => {
-                let msg = msg.context("Roomserver closed connection")?.context("Error on roomserver connection")?;
+                let Some(msg) = msg else {
+                    tracing::debug!("Roomserver closed connection, ending proxy task");
+                    return Ok(());
+                };
+                let msg = msg.context("Error on roomserver connection")?;
 
                 let Some(msg) = translation::tungstenite_to_axum(msg) else {
                     continue;
