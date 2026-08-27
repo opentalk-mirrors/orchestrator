@@ -92,6 +92,12 @@ async fn duplicate_resource() {
     tester.duplicate_resource().await;
 }
 
+#[tokio::test]
+async fn roomserver_token_store() {
+    let tester = StorageTester::new_redis_storage().await;
+    tester.roomserver_token_store().await;
+}
+
 // Redis specific tests
 
 #[tokio::test]

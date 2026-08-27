@@ -22,12 +22,10 @@ use tokio::{
         self,
         unix::{SignalKind, signal},
     },
-    sync::Mutex,
 };
 use url::Url;
 
 use crate::{
-    roomserver::token_store::TokenStore,
     service_instance::registration::handle_socket,
     settings::{Settings, monitoring::Monitoring, storage::Storage},
     storage::{OrchestratorStorage, local::LocalStorage, redis::RedisStorage},
@@ -59,7 +57,6 @@ pub(crate) struct AppState {
     public_url: Url,
     service_keys: ApiKeys,
     storage: Arc<dyn OrchestratorStorage>,
-    roomserver_tokens: Arc<Mutex<TokenStore>>,
 }
 
 impl AppState {
@@ -69,7 +66,6 @@ impl AppState {
             public_url,
             service_keys,
             storage,
-            roomserver_tokens: Arc::new(Mutex::new(TokenStore::new())),
         }
     }
 

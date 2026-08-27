@@ -14,14 +14,19 @@ use opentalk_orchestrator_shared::{
     error::RegistrationError,
     services::{ResourceType, ServiceState},
 };
-use opentalk_types_common::rooms::RoomId;
-use tokio::sync::RwLock;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use tokio::sync::{Mutex, RwLock};
 use url::Url;
 
 use crate::{
     service_instance::registration::ServiceRegistration,
-    storage::{AddInstanceError, InstanceData, OrchestratorStorage, ServiceResource},
+    storage::{
+        AddInstanceError, InstanceData, OrchestratorStorage, ServiceResource,
+        local::token_store::{LocalTokenStore, TokenExpiry},
+    },
 };
+
+pub(crate) mod token_store;
 
 #[cfg(test)]
 mod tests;
@@ -31,6 +36,7 @@ pub(crate) struct LocalStorage {
     recorder_services: Arc<RwLock<HashMap<Url, ServiceState<RecorderResource>>>>,
     roomserver_services: Arc<RwLock<HashMap<Url, ServiceState<RoomId>>>>,
     transcription_services: Arc<RwLock<HashMap<Url, ServiceState<TranscriptionResource>>>>,
+    token_store: Arc<Mutex<LocalTokenStore>>,
 }
 
 impl LocalStorage {
@@ -39,6 +45,7 @@ impl LocalStorage {
             recorder_services: Default::default(),
             roomserver_services: Default::default(),
             transcription_services: Default::default(),
+            token_store: Arc::new(Mutex::new(LocalTokenStore::new())),
         }
     }
 
@@ -340,6 +347,30 @@ impl OrchestratorStorage for LocalStorage {
                 Self::select_service(&self.transcription_services, transcription_resource).await
             }
         }
+    }
+
+    async fn add_roomserver_token(&self, room_id: RoomId, token: Token) -> anyhow::Result<()> {
+        let mut token_store = self.token_store.lock().await;
+        token_store.remove_expired_entries();
+
+        if let Some(room) = token_store.tokens.insert(token, room_id) {
+            anyhow::bail!("UUID collision, token {token} already exists for room {room}");
+        }
+
+        token_store.expiry_set.insert(TokenExpiry::new_now(token));
+
+        Ok(())
+    }
+
+    async fn consume_roomserver_token(&self, token: &Token) -> anyhow::Result<Option<RoomId>> {
+        let mut token_store = self.token_store.lock().await;
+        token_store.remove_expired_entries();
+        Ok(token_store.tokens.remove(token))
+    }
+
+    #[cfg(test)]
+    async fn set_roomserver_token_expiry(&mut self, expiry: std::time::Duration) {
+        self.token_store.lock().await.expiry = expiry
     }
 
     #[cfg(test)]

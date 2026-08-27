@@ -23,11 +23,14 @@ pub async fn roomserver_signaling(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
 ) -> Result<Response, ApiError> {
-    let mut token_store = state.roomserver_tokens.lock().await;
-    let Some(room) = token_store.consume_token(&token) else {
-        return Err(ApiError::forbidden().with_message("invalid token"));
+    let room = match state.storage.consume_roomserver_token(&token).await {
+        Ok(Some(room)) => room,
+        Ok(None) => return Err(ApiError::forbidden().with_message("invalid token")),
+        Err(e) => {
+            tracing::error!("Failed to consume roomserver token: {e:?}");
+            return Err(ApiError::internal().with_message("failed to consume roomserver token"));
+        }
     };
-    drop(token_store);
 
     let Some((url, _)) = state
         .storage

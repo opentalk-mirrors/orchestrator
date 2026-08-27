@@ -2,14 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::assert_matches;
+use std::{assert_matches, time::Duration};
 
 use opentalk_orchestrator_shared::{
     Metrics, RecorderResource, RegisterRecorder, RegisterRoomserver, RegisterTranscription,
     RegisterType, ServiceKind, ServiceResource, TranscriptionResource, error::RegistrationError,
 };
 use opentalk_service_auth::ApiKeyId;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use url::Url;
 
 use crate::{
@@ -27,6 +27,7 @@ pub(crate) mod container;
 
 const ROOM_ZERO: RoomId = RoomId::from_u128(0);
 const ROOM_ONE: RoomId = RoomId::from_u128(1);
+const TEST_ROOMSERVER_TOKEN_EXPIRY: Duration = Duration::from_secs(1);
 
 /// A struct to test common behaviour of all orchestrator storage implementations
 pub(crate) struct StorageTester<T: OrchestratorStorage> {
@@ -38,10 +39,15 @@ pub(crate) struct StorageTester<T: OrchestratorStorage> {
 }
 
 impl StorageTester<LocalStorage> {
-    pub(crate) fn new_local_storage() -> Self {
+    pub(crate) async fn new_local_storage() -> Self {
+        let mut local_storage = LocalStorage::new();
+        local_storage
+            .set_roomserver_token_expiry(TEST_ROOMSERVER_TOKEN_EXPIRY)
+            .await;
+
         Self {
             _containers: vec![],
-            storage: LocalStorage::new(),
+            storage: local_storage,
         }
     }
 }
@@ -51,9 +57,13 @@ impl StorageTester<RedisStorage> {
         let container = TestContainer::new_redis_instance().await;
 
         let mut tasks = Tasks::new();
-        let storage = RedisStorage::init(&mut tasks, &container.url)
+        let mut storage = RedisStorage::init(&mut tasks, &container.url)
             .await
             .expect("Failed to create Redis storage");
+
+        storage
+            .set_roomserver_token_expiry(TEST_ROOMSERVER_TOKEN_EXPIRY)
+            .await;
 
         Self {
             _containers: vec![container],
@@ -501,5 +511,50 @@ impl<T: OrchestratorStorage> StorageTester<T> {
 
         assert_eq!(selected_url, url_one);
         assert_eq!(instance_data.metrics, metrics_one)
+    }
+
+    pub(crate) async fn roomserver_token_store(&self) {
+        let room1 = RoomId::from_u128(1);
+        let token1 = Token::generate();
+        self.storage
+            .add_roomserver_token(room1, token1)
+            .await
+            .unwrap();
+
+        let room2 = RoomId::from_u128(2);
+        let token2 = Token::generate();
+        self.storage
+            .add_roomserver_token(room2, token2)
+            .await
+            .unwrap();
+
+        // get the right room for token1
+        assert_eq!(
+            self.storage
+                .consume_roomserver_token(&token1)
+                .await
+                .unwrap(),
+            Some(room1)
+        );
+
+        // ensure the token was consumed and does not exist anymore
+        assert_eq!(
+            None,
+            self.storage
+                .consume_roomserver_token(&token1)
+                .await
+                .unwrap()
+        );
+
+        tokio::time::sleep(TEST_ROOMSERVER_TOKEN_EXPIRY + Duration::from_millis(100)).await;
+
+        //ensure the second token expired
+        assert_eq!(
+            None,
+            self.storage
+                .consume_roomserver_token(&token2)
+                .await
+                .unwrap()
+        );
     }
 }
