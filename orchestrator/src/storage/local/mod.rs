@@ -42,7 +42,7 @@ impl LocalStorage {
         }
     }
 
-    async fn insert_service<T: ResourceType>(
+    async fn insert_service<T: ResourceType + Clone + Into<ServiceResource>>(
         services: &RwLock<HashMap<Url, ServiceState<T>>>,
         address: Url,
         instance_data: InstanceData,
@@ -50,12 +50,18 @@ impl LocalStorage {
     ) -> Result<(), RegistrationError> {
         let mut lock = services.write().await;
 
+        let mut colliding_resources: Vec<ServiceResource> = vec![];
+
         for resource in &managed_resources {
             for data in lock.values() {
                 if data.managed_resources.contains(resource) {
-                    return Err(RegistrationError::ResourceAlreadyExists);
+                    colliding_resources.push(resource.clone().into());
                 }
             }
+        }
+
+        if !colliding_resources.is_empty() {
+            return Err(RegistrationError::ResourceConflict(colliding_resources));
         }
 
         match lock.entry(address) {

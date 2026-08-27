@@ -19,18 +19,27 @@ use crate::storage::{
 
 #[derive(Debug)]
 enum ScriptResult {
-    Ok = 0,
-    AddressAlreadyInUse = 1,
-    ResourceAlreadyExists = 2,
+    Ok,
+    AddressAlreadyInUse,
+    ResourceConflict(Vec<ServiceResource>),
 }
 
 impl FromRedisValue for ScriptResult {
     fn from_redis_value(v: redis::Value) -> Result<Self, redis::ParsingError> {
-        let int_value = i32::from_redis_value(v)?;
-        match int_value {
+        let (code, conflicting_resources) = <(i32, Vec<String>)>::from_redis_value(v)?;
+
+        match code {
             0 => Ok(ScriptResult::Ok),
             1 => Ok(ScriptResult::AddressAlreadyInUse),
-            2 => Ok(ScriptResult::ResourceAlreadyExists),
+            2 => {
+                let resources = conflicting_resources
+                    .iter()
+                    .map(|resource| ServiceResource::try_from(resource.as_str()))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|e| format!("failed to parse conflicting resource: {e}"))?;
+
+                Ok(ScriptResult::ResourceConflict(resources))
+            }
             other => Err(format!("unexpected add_instance script return value: {other}").into()),
         }
     }
@@ -53,8 +62,8 @@ impl From<ScriptResult> for Result<(), AddInstanceScriptError> {
             ScriptResult::AddressAlreadyInUse => Err(AddInstanceScriptError::Registration(
                 RegistrationError::AddressAlreadyInUse,
             )),
-            ScriptResult::ResourceAlreadyExists => Err(AddInstanceScriptError::Registration(
-                RegistrationError::ResourceAlreadyExists,
+            ScriptResult::ResourceConflict(resources) => Err(AddInstanceScriptError::Registration(
+                RegistrationError::ResourceConflict(resources),
             )),
         }
     }

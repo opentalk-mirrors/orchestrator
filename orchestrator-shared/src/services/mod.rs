@@ -18,7 +18,9 @@ pub mod transcription;
 pub use service_resource::{ServiceResource, ServiceResourceParseError};
 
 /// Marker trait for types that can be used as managed resources within a [`ServiceState`].
-pub trait ResourceType: Eq + std::hash::Hash + std::fmt::Debug + Sized {
+pub trait ResourceType:
+    Eq + std::hash::Hash + std::fmt::Debug + Sized + Into<ServiceResource>
+{
     /// Returns the [`ServiceKind`] this resource type belongs to.
     fn kind() -> ServiceKind;
 

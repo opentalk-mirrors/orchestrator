@@ -6,7 +6,7 @@ use std::assert_matches;
 
 use opentalk_orchestrator_shared::{
     Metrics, RecorderResource, RegisterRecorder, RegisterRoomserver, RegisterTranscription,
-    RegisterType, ServiceKind, TranscriptionResource, error::RegistrationError,
+    RegisterType, ServiceKind, ServiceResource, TranscriptionResource, error::RegistrationError,
 };
 use opentalk_service_auth::ApiKeyId;
 use opentalk_types_common::rooms::RoomId;
@@ -23,7 +23,7 @@ use crate::{
     tasks::Tasks,
 };
 
-mod container;
+pub(crate) mod container;
 
 const ROOM_ZERO: RoomId = RoomId::from_u128(0);
 const ROOM_ONE: RoomId = RoomId::from_u128(1);
@@ -274,9 +274,12 @@ impl<T: OrchestratorStorage> StorageTester<T> {
             .add_instance(&url_two, register_type)
             .await
             .unwrap_err();
+
+        let conflicting_rooms = [ServiceResource::Roomserver(ROOM_ONE)];
+
         assert_matches!(
             err,
-            AddInstanceError::RegistrationError(RegistrationError::ResourceAlreadyExists)
+            AddInstanceError::RegistrationError(RegistrationError::ResourceConflict(c)) if c == conflicting_rooms
         );
 
         let resources = self.storage.get_all_resources().await.unwrap();

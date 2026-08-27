@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::services::ServiceResource;
+
 /// Errors that can occur during the service registration process
 #[derive(Debug, Clone, Serialize, Deserialize, thiserror::Error)]
 #[serde(rename_all = "snake_case")]
@@ -13,7 +15,7 @@ pub enum RegistrationError {
     #[error("the provided service address or port is invalid")]
     InvalidServiceAddress,
     #[error("one or more of the provided resources are managed by other instances already")]
-    ResourceAlreadyExists,
+    ResourceConflict(Vec<ServiceResource>),
     #[error("unknown api key ids")]
     UnknownApiKeyIds,
     #[error("failed to receive registration message within timeout")]

@@ -2,6 +2,10 @@
 --
 -- SPDX-License-Identifier: EUPL-1.2
 
+-- Returns a pair of `{ code, conflicting_resources }`, where the code is one of the values
+-- documented on `ScriptResult` in `add_instance.rs`. `conflicting_resources` is only populated for
+-- the resource conflict code and empty otherwise.
+
 local instance_key = KEYS[1]
 local instance_metrics_key = KEYS[2]
 local instance_resource_key = KEYS[3]
@@ -20,23 +24,28 @@ local resource_keys = ARGV[8]
 -- Check if a service instance with the same service id already exists
 
 if redis.call("EXISTS", instance_key) == 1 then
-    return 1 -- service instance already exists
+    return { 1, {} } -- service instance already exists
 end
 
--- Set resource keys
 local resources = cjson.decode(managed_resources)
 local resource_lookup_keys = cjson.decode(resource_keys)
-local created = { instance_resource_key }
+
+-- A list of resources already managed by another service instance
+local conflicts = {}
 
 for i, resource in ipairs(resources) do
-    if not redis.call("SET", resource_lookup_keys[i], service_id, "NX") then
-        -- cleanup keys that were already set
-        for j = 1, #created do
-            redis.call("DEL", created[j])
-        end
-        return 2 -- resource already exists
+    if redis.call("EXISTS", resource_lookup_keys[i]) == 1 then
+        conflicts[#conflicts + 1] = resource
     end
-    created[#created + 1] = resource_lookup_keys[i]
+end
+
+if #conflicts > 0 then
+    return { 2, conflicts } -- resources are owned by other instances
+end
+
+-- Claim the resources
+for i, resource in ipairs(resources) do
+    redis.call("SET", resource_lookup_keys[i], service_id)
     redis.call("SADD", instance_resource_key, resource)
 end
 
@@ -57,4 +66,4 @@ redis.call("SADD", service_kind_key, service_id)
 -- Track which orchestrator owns this service (used for cleanup on crash)
 redis.call("SADD", orchestrator_services_key, service_id)
 
-return 0
+return { 0, {} }
