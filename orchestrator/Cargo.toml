@@ -30,11 +30,11 @@ opentalk-orchestrator-shared.workspace = true
 opentalk-recorder-web-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-service-auth = { version = "0.5", features = ["axum", "default"] }
+opentalk-service-auth = { version = "0.6.0", features = ["axum", "default"] }
 opentalk-transcription-web-api.workspace = true
-opentalk-types-api-common = { version = "0.12.0", features = ["http", "serde"] }
-opentalk-types-api-internal = "0.6"
-opentalk-types-common = { version = "0.49.0", default-features = false, features = [
+opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
+opentalk-types-api-internal.workspace = true
+opentalk-types-common = { workspace = true, default-features = false, features = [
   "serde",
   "redis",
 ] }
