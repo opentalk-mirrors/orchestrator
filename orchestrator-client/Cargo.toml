@@ -5,7 +5,7 @@
 [package]
 name = "opentalk-orchestrator-client"
 description = "Client for orchestrated services"
-version = "0.14.0"
+version = "0.15.0"
 publish = true
 authors.workspace = true
 edition.workspace = true
