@@ -7,7 +7,7 @@ use redis::FromRedisValue;
 use uuid::Uuid;
 
 use crate::storage::redis::{
-    TTL_SECS,
+    KEEP_ALIVE_TTL,
     keys::{ORCHESTRATORS_SET_KEY, OrchestratorAliveKey},
 };
 
@@ -50,7 +50,7 @@ pub(crate) async fn init(client: &redis::Client) -> anyhow::Result<Uuid> {
             .key(OrchestratorAliveKey { id: id_str.clone() })
             .key(ORCHESTRATORS_SET_KEY)
             .arg(&id_str)
-            .arg(TTL_SECS)
+            .arg(KEEP_ALIVE_TTL)
             .invoke_async::<ScriptResult>(&mut con)
             .await
             .context("Failed to execute orchestrator init script")?;

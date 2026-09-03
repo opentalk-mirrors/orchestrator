@@ -32,8 +32,11 @@ use crate::{
     tasks::Tasks,
 };
 
-pub const TTL_SECS: u64 = 5;
-pub const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(3);
+/// The time to live of the orchestrators alive key, an expired key leads to a dead orchestrator
+/// cleanup
+pub const KEEP_ALIVE_TTL: u64 = 5;
+/// The time between each orchestrator alive key refresh
+pub const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(2);
 
 pub(crate) mod keys;
 mod peer_monitor;
@@ -250,7 +253,7 @@ impl OrchestratorStorage for RedisStorage {
     }
 
     async fn remove_instance(&self, url: &Url, kind: ServiceKind) -> anyhow::Result<()> {
-        scripts::remove_instance(&self.client, url, kind).await
+        scripts::remove_instance(&self.client, self.orchestrator_id, url, kind).await
     }
 
     async fn remove_service_resource(
