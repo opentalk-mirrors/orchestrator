@@ -6,8 +6,11 @@ use anyhow::anyhow;
 use opentalk_orchestrator_shared::ServiceKind;
 use redis::FromRedisValue;
 use url::Url;
+use uuid::Uuid;
 
-use crate::storage::redis::keys::{ServiceId, ServiceInstanceKey, ServiceKindKey};
+use crate::storage::redis::keys::{
+    OrchestratorServicesKey, ServiceId, ServiceInstanceKey, ServiceKindKey,
+};
 
 #[derive(Debug)]
 enum ScriptResult {
@@ -31,6 +34,7 @@ const SCRIPT: &str = include_str!("remove_instance.lua");
 /// Removes a service instance and all its associated data from Redis.
 pub(crate) async fn remove_instance(
     client: &redis::Client,
+    orchestrator_id: Uuid,
     url: &Url,
     kind: ServiceKind,
 ) -> anyhow::Result<()> {
@@ -41,6 +45,9 @@ pub(crate) async fn remove_instance(
     let result: ScriptResult = script
         .key(ServiceInstanceKey { id: id.clone() })
         .key(ServiceKindKey { kind })
+        .key(OrchestratorServicesKey {
+            id: orchestrator_id.to_string(),
+        })
         .arg(id.to_string())
         .invoke_async(&mut con)
         .await?;

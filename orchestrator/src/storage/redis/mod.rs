@@ -253,7 +253,7 @@ impl OrchestratorStorage for RedisStorage {
     }
 
     async fn remove_instance(&self, url: &Url, kind: ServiceKind) -> anyhow::Result<()> {
-        scripts::remove_instance(&self.client, url, kind).await
+        scripts::remove_instance(&self.client, self.orchestrator_id, url, kind).await
     }
 
     async fn remove_service_resource(
