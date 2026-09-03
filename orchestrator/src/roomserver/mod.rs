@@ -227,7 +227,7 @@ impl RoomBackend for AppState {
             std::str::from_utf8(&body)
         );
 
-        let signaling_url = self.public_url.join("/roomserver/").map_err(|e| {
+        let signaling_url = self.public_url.join("roomserver/").map_err(|e| {
             tracing::error!("Failed to build roomserver proxy endpoint: {e}");
             ApiError::internal()
         })?;

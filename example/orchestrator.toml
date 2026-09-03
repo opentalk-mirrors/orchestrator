@@ -1,6 +1,15 @@
 # SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 # SPDX-License-Identifier: EUPL-1.2
 
+#[logging]
+# Logging settings are optional and default to `warn,opentalk_orchestrator=info`
+
+# The logging directives to use. Uses the same syntax as the `RUST_LOG` environment variable.
+#directives = ["warn", "opentalk_orchestrator=info"]
+
+# The `ORCHESTRATOR_LOG` and `RUST_LOG` environment variables take precedence over this setting,
+# in that order.
+
 [http]
 # HTTP server settings
 
@@ -17,6 +26,16 @@
 
 # The port to bind the HTTP server to (defaults to 11222)
 #port = 11222
+
+# The publicly reachable address of the orchestrator.
+#
+# Clients reach both the roomserver signaling and the livekit endpoints through this URL. The
+# orchestrator injects it as the signaling URL in roomserver token responses. The configured
+# livekit URL in the controller/roomserver needs to point to `<public_url>/livekit/`.
+#
+# When the orchestrator is served under a sub path, include that path here and terminate it with a
+# trailing slash, for example `https://example.com/orchestrator/`.
+public_url = "http://localhost:11222"
 
 # The api keys for requests towards the orchestrator
 #
