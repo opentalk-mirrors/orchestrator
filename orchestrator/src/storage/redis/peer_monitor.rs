@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     storage::redis::{
-        KEEP_ALIVE_INTERVAL, TTL_SECS, scripts,
+        KEEP_ALIVE_INTERVAL, KEEP_ALIVE_TTL, scripts,
         util::{PMessageData, redis_to_string},
     },
     tasks::ShutdownReceiver,
@@ -105,7 +105,7 @@ impl PeerMonitor {
                         .arg(format!("ot-orchestrator:orchestrator:{}:alive", self.id))
                         .arg(self.id.to_string())
                         .arg("EX")
-                        .arg(TTL_SECS)
+                        .arg(KEEP_ALIVE_TTL)
                         .query_async::<()>(&mut self.redis_conn)
                         .await
                         .context("Failed to send keep-alive to Redis")?;
