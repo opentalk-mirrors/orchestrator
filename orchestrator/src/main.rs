@@ -122,6 +122,8 @@ async fn main() -> Result<()> {
     drop(early_logger);
     logging::init_logging(settings.logging.as_ref());
 
+    tracing::trace!("Tracing enabled");
+
     let mut tasks = Tasks::new();
 
     tasks.spawn("shutdown_signal_handler", |shutdown| async move {

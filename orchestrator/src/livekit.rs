@@ -51,7 +51,7 @@ async fn validate(
     match forward_validate_request(room_id, headers, raw_query.as_deref(), body, &state).await {
         Ok(response) => response,
         Err(e) => {
-            tracing::error!("Failed to forward livekit validate request: {e:?}");
+            tracing::error!("Failed to forward livekit validate request to {room_id}: {e:?}");
             ApiError::internal().into_response()
         }
     }
@@ -71,13 +71,15 @@ async fn forward_validate_request(
         .get_instances_for_resource(&service_resource)
         .await
         .context("Could not find associated instances for resource")?
-        .context("Failed to select roomserver for valid known livekit token")?;
+        .context("Failed to select roomserver for valid livekit token")?;
 
     let mut url = url
         .join("livekit/rtc/validate")
         .context("Failed to build livekit validate url")?;
 
-    tracing::debug!("Forwarding livekit validate request for room {room_id}to roomserver at {url}");
+    tracing::debug!(
+        "Forwarding livekit validate request for room {room_id} to roomserver at {url}"
+    );
 
     url.set_query(raw_query);
 
@@ -178,8 +180,10 @@ fn extract_room_id_from_request(
         None => get_bearer_token_from_headers(headers)?,
     };
 
+    tracing::trace!("Got livekit token {token}");
+
     let claims = livekit_api::access_token::Claims::from_unverified(token).map_err(|e| {
-        tracing::debug!("Failed to parse livekit token claims: {e}");
+        tracing::error!("Failed to parse livekit token claims: {e}");
         ApiError::forbidden().with_message("invalid token")
     })?;
 
@@ -211,6 +215,8 @@ fn get_bearer_token_from_headers(headers: &HeaderMap) -> Result<&str, ApiError> 
 ///
 /// Assumes the room to have the format `<room_id>[:<breakout_room_id>][#<whisper_id>]`
 fn parse_livekit_room(room: String) -> Result<RoomId, ApiError> {
+    tracing::trace!("Parsing room id from livekit room {room}");
+
     // Split off the whisper id if it exists, we don't need it for routing
     let room = if let Some((room, _whisper)) = room.split_once('#') {
         room
@@ -224,6 +230,8 @@ fn parse_livekit_room(room: String) -> Result<RoomId, ApiError> {
     } else {
         room
     };
+
+    tracing::trace!("Got room id {room} from livekit room");
 
     room_id
         .parse()
