@@ -47,6 +47,7 @@ impl RecorderBackend for AppState {
 
         match status {
             StatusCode::OK => Ok(RecordingAction::Created),
+            StatusCode::CREATED => Ok(RecordingAction::Created),
             StatusCode::NO_CONTENT => Ok(RecordingAction::AlreadyRunning),
             StatusCode::UNAUTHORIZED => {
                 Err(ApiError::internal().with_message("Failed to authorize at recorder"))
