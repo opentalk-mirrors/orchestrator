@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-09-10
+
+[0.12.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.11.0...v0.12.0
+
+### 🐛 Bug fixes
+
+- (redis) Lower the keep alive interval to two seconds ([!252](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/252), [#49](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/49))
+- (redis) Handle OrchestratorServicesKey in remove_instance script ([!252](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/252), [#50](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/50))
+- Preserve path in public_url when joining 'roomserver/' ([!253](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/253))
+- (docs) Add missing documentation in example.toml ([!253](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/253))
+- (recorder) Handle the 204 created response on init call ([!259](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/259))
+
+### 🔨 Refactor
+
+- (livekit-proxy) Add more trace/debug logging ([!248](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/248))
+
+### Ci
+
+- Remove unused code ()
+
 ## [0.10.0] - 2026-07-17
 
 [0.10.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.9.0...v0.10.0
