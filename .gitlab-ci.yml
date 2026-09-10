@@ -37,15 +37,6 @@ variables:
   FLAVORS: [alpine, trixie, resolute]
   DEFAULT_FLAVOR: alpine
 
-.default_job_condition: &default_job_condition
-  needs: []
-  rules:
-    # Run in merge requests (if there is one job with this instruction, all jobs without
-    # it are ignored for the MR pipeline)
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    # Run on scheduled pipeline runs
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-
 include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
