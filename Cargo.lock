@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "adler2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -663,6 +669,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc32fast"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1028,6 +1043,17 @@ name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
+
+[[package]]
+name = "flate2"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+ "zlib-rs",
+]
 
 [[package]]
 name = "fnv"
@@ -1925,13 +1951,10 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35d1477ba65e4a5d74c47ceb982e9c582a4543c1b774607652085482821978a6"
 dependencies = [
- "base64 0.21.7",
  "device-info",
  "http",
  "livekit-common",
- "livekit-net",
  "livekit-protocol",
- "livekit-runtime",
  "livekit-token",
  "log",
  "os_info",
@@ -1939,8 +1962,30 @@ dependencies = [
  "pbjson-types",
  "prost 0.12.6",
  "rand 0.9.5",
- "reqwest 0.12.28",
  "scopeguard",
+ "serde",
+ "sha2",
+ "thiserror 2.0.20",
+ "url",
+]
+
+[[package]]
+name = "livekit-api"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b1120c4ea5a95f28d8aed783c49fb5ebd57cb9ad3b8270c583c71404bbd4372"
+dependencies = [
+ "base64 0.21.7",
+ "http",
+ "livekit-protocol",
+ "livekit-region",
+ "livekit-signaling",
+ "livekit-token",
+ "log",
+ "pbjson-types",
+ "prost 0.12.6",
+ "rand 0.9.5",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "sha2",
@@ -1951,18 +1996,18 @@ dependencies = [
 
 [[package]]
 name = "livekit-common"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "854b79dff62b1ce9d1cc08bf8ce927313b4e59fdb8ed1cdc79942715d6494fe4"
+checksum = "ed16f156f1b6669cb17d7a910ab97d61d01ef24a7b3d14caade3edde9b02339f"
 dependencies = [
  "livekit-protocol",
 ]
 
 [[package]]
 name = "livekit-net"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46155c42ad7acccca96a0d8be2bd0f379565f93e85144fb3aa6fa406371fee22"
+checksum = "f9528a26c807f49d3fa6d075c01db5fd77bf32454b1e700c530fb8c670892008"
 dependencies = [
  "async-trait",
  "http",
@@ -1976,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "livekit-protocol"
-version = "0.7.12"
+version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "526f22bddf409e5f15449d55cf341647d7c16a1f43df9db9b05be106e4208e1c"
+checksum = "a76389797ee45f81577ee00d9f8a5d816bec8f9284988374bd20cdc1119c13e4"
 dependencies = [
  "pbjson",
  "pbjson-types",
@@ -1987,20 +2032,43 @@ dependencies = [
 ]
 
 [[package]]
-name = "livekit-runtime"
-version = "0.4.0"
+name = "livekit-region"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532e84c6cdc5fe774f2b5d9912597b5f3bea561927a48296d03e24549d21c3f6"
+checksum = "8e94621b7d7cbb4544cd568c8e632852cc174d383055b0e77f4638eb91e43d3b"
 dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "livekit-signaling"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c1a9b518fa5434cae1dd679e60254070f203241c0319f239fd836e216960f36"
+dependencies = [
+ "base64 0.21.7",
+ "device-info",
+ "flate2",
+ "http",
+ "livekit-common",
+ "livekit-net",
+ "livekit-protocol",
+ "livekit-region",
+ "log",
+ "os_info",
+ "parking_lot",
+ "prost 0.12.6",
+ "serde_json",
+ "thiserror 2.0.20",
  "tokio",
- "tokio-stream",
+ "url",
 ]
 
 [[package]]
 name = "livekit-token"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb65d06695dd768d7ef2135a9ba169a4048119041b543a50323fd78ec5ee064b"
+checksum = "bc9c914fdcfb38e7e48acfe5dfa1a64eb01a4e3f42c37f792e48b0705a8cc7c4"
 dependencies = [
  "hmac",
  "jsonwebtoken 10.4.0",
@@ -2058,6 +2126,16 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "miniz_oxide"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
+dependencies = [
+ "adler2",
+ "simd-adler32",
+]
 
 [[package]]
 name = "mio"
@@ -2377,7 +2455,7 @@ dependencies = [
  "dirs",
  "futures-util",
  "jsonwebtoken 11.0.0",
- "livekit-api",
+ "livekit-api 0.6.4",
  "opentalk-orchestrator-shared",
  "opentalk-recorder-web-api",
  "opentalk-roomserver-types",
@@ -2453,9 +2531,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e18e81a9759f7ac6303eff2e59d21ab6cad217470a9348f0d8347830cab745b5"
+checksum = "55f458875110a31a6ab97868aeab05ef86eda5dde9ab82fa08a2a3dde533cc77"
 dependencies = [
  "anyhow",
  "axum",
@@ -2481,14 +2559,14 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03633705e18732ac07bf7cd11db9b792ba67da17d1472d8fd108f0212354cbaf"
+checksum = "881becfe86c2347b4eec3ae8393bb7fc670ff8630f0e611481b068fad1e2a4da"
 dependencies = [
  "async-trait",
  "axum",
  "jsonwebtoken 11.0.0",
- "livekit-api",
+ "livekit-api 0.7.1",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
@@ -3887,6 +3965,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "simd-adler32"
+version = "0.3.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
+
+[[package]]
 name = "simd_cesu8"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5282,6 +5366,12 @@ dependencies = [
  "quote",
  "syn 3.0.3",
 ]
+
+[[package]]
+name = "zlib-rs"
+version = "0.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34b31d188d9d685a4f9c7b46d6e36631b07058d2cfe190267adce54dc230bf12"
 
 [[package]]
 name = "zmij"
