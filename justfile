@@ -55,6 +55,7 @@ update-changelog VERSION: _check_opentalk_git_cliff
     GITLAB_REPO=opentalk/backend/services/orchestrator \
     opentalk-git-cliff \
         --unreleased \
+        --use-branch-tags \
         --tag "v{{ VERSION }}" \
         --prepend CHANGELOG.md
 
