@@ -1,5 +1,9 @@
 # OpenTalk Orchestrator
 
+> [!caution]
+> This repository has been moved to the [OpenTalk Monorepo](https://git.opentalk.dev/opentalk/opentalk)
+> and is now used for backports only.
+
 The Orchestrator manages scalable services in an OpenTalk deployment, similar to a loadbalancer. It proxies the internal
 web APIs of orchestrated services and forwards requests towards the appropriate instance.
 
